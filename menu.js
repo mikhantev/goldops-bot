@@ -24,7 +24,7 @@ const menu = {
     setTimeout(() => showMainMenu(ctx, lang), 800);
   },
 
-  // Работает смена языка из главного меню
+  // Смена языка из главного меню
   changeLanguage: (ctx) => {
     showLanguageMenu(ctx);
   },
