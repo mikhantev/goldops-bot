@@ -21,16 +21,18 @@ const menu = {
       ? '✅ Язык установлен на Русский.' 
       : '✅ Language set to English.');
 
-    // Главное исправление — явно передаём язык
+    // Открываем меню только на выбранном языке
     setTimeout(() => showMainMenu(ctx, lang), 800);
   },
 
-  showMainMenu: (ctx, lang = 'ru') => {
-    showMainMenuInternal(ctx, lang);
+  // Для кнопки "Смена языка"
+  changeLanguage: (ctx) => {
+    showLanguageMenu(ctx);
   }
 };
 
-function showMainMenuInternal(ctx, lang = 'ru') {
+// Главное меню только на выбранном языке
+function showMainMenu(ctx, lang = 'ru') {
   if (lang === 'ru') {
     ctx.reply('👋 Главное меню GoldOps:', {
       reply_markup: {
