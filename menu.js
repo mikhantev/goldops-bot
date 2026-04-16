@@ -21,12 +21,8 @@ const menu = {
       ? '✅ Язык установлен на Русский.' 
       : '✅ Language set to English.');
 
+    // Главное исправление — явно передаём язык
     setTimeout(() => showMainMenu(ctx, lang), 800);
-  },
-
-  // Смена языка из главного меню
-  changeLanguage: (ctx) => {
-    showLanguageMenu(ctx);
   },
 
   showMainMenu: (ctx, lang = 'ru') => {
