@@ -1,8 +1,8 @@
 const { Telegraf } = require('telegraf');
-const config = require('./config.js');
+const config = require('./config');
 
-const menu = require('./menu.js/index.js');
-const intake = require('./intake.js/index.js');
+const menu = require('./menu');
+const intake = require('./intake');
 
 const bot = new Telegraf(config.BOT_TOKEN);
 
@@ -26,7 +26,6 @@ bot.launch()
   })
   .catch((err) => {
     console.error('❌ Ошибка подключения:', err.message);
-    console.log('Попробуйте перезапустить через 10 секунд...');
   });
 
 console.log('Ожидаем подключения к Telegram...');
