@@ -1,76 +1,46 @@
-let userLanguage = {};   // глобальное хранилище языка пользователя
+const menu = {
+  showLanguageMenu: (ctx) => {
+    ctx.reply('Выберите язык / Choose language:', {
+      reply_markup: {
+        keyboard: [
+          ['🇷🇺 Русский'],
+          ['🇬🇧 English']
+        ],
+        resize_keyboard: true,
+        one_time_keyboard: true
+      }
+    });
+  },
 
-function showLanguageMenu(ctx) {
-  ctx.reply('Добро пожаловать в GoldOps!', {
-    reply_markup: {
-      keyboard: [
-        [{ text: "🇷🇺 Русский" }],
-        [{ text: "🇬🇧 English" }]
-      ],
-      resize_keyboard: true
-    }
-  });
-}
+  handleLanguage: (ctx) => {
+    const text = ctx.message.text;
+    const lang = text.includes('Русский') ? 'ru' : 'en';
 
-function setRussian(ctx) {
-  const userId = ctx.from.id;
-  userLanguage[userId] = 'ru';
+    // Здесь можно сохранить язык пользователя, пока просто выводим
+    ctx.reply(lang === 'ru' ? '✅ Язык установлен: Русский' : '✅ Language set: English');
 
-  ctx.reply('✅ Язык установлен на Русский', {
-    reply_markup: {
-      keyboard: [
-        [{ text: "📥 Приём золота" }, { text: "📤 Отправка золота" }],
-        [{ text: "⛽ Заправка топлива" }, { text: "📋 Лог производства" }],
-        [{ text: "🛠 Техника" }, { text: "💰 Расходы" }],
-        [{ text: "📊 Директорский бриф" }, { text: "🔙 Назад" }]
-      ],
-      resize_keyboard: true
-    }
-  });
-}
-
-function setEnglish(ctx) {
-  const userId = ctx.from.id;
-  userLanguage[userId] = 'en';
-
-  ctx.reply('✅ Language set to English', {
-    reply_markup: {
-      keyboard: [
-        [{ text: "📥 Gold Intake" }, { text: "📤 Send Gold" }],
-        [{ text: "⛽ Fuel Log" }, { text: "📋 Production Log" }],
-        [{ text: "🛠 Equipment" }, { text: "💰 Expenses" }],
-        [{ text: "📊 Director Brief" }, { text: "🔙 Back" }]
-      ],
-      resize_keyboard: true
-    }
-  });
-}
-
-function showMainMenu(ctx) {
-  const userId = ctx.from.id;
-  const lang = userLanguage[userId] || 'ru';
-  const isEnglish = lang === 'en';
-
-  ctx.reply(isEnglish ? 'Main Menu:' : 'Главное меню:', {
-    reply_markup: {
-      keyboard: [
-        [{ text: isEnglish ? "📥 Gold Intake" : "📥 Приём золота" }, 
-         { text: isEnglish ? "📤 Send Gold" : "📤 Отправка золота" }],
-        [{ text: isEnglish ? "⛽ Fuel Log" : "⛽ Заправка топлива" }, 
-         { text: isEnglish ? "📋 Production Log" : "📋 Лог производства" }],
-        [{ text: isEnglish ? "🛠 Equipment" : "🛠 Техника" }, 
-         { text: isEnglish ? "💰 Expenses" : "💰 Расходы" }],
-        [{ text: isEnglish ? "📊 Director Brief" : "📊 Директорский бриф" }, 
-         { text: isEnglish ? "🔙 Back" : "🔙 Назад" }]
-      ],
-      resize_keyboard: true
-    }
-  });
-}
-
-module.exports = {
-  showLanguageMenu,
-  setRussian,
-  setEnglish,
-  showMainMenu
+    setTimeout(() => {
+      showMainMenu(ctx, lang);
+    }, 800);
+  }
 };
+
+function showMainMenu(ctx, lang = 'ru') {
+  const keyboard = {
+    reply_markup: {
+      keyboard: [
+        ['📥 Приём золота', '📥 Gold Intake'],
+        ['📤 Отправка золота', '📤 Send Gold']
+      ],
+      resize_keyboard: true
+    }
+  };
+
+  const text = lang === 'ru' 
+    ? '👋 Главное меню:' 
+    : '👋 Main Menu:';
+
+  ctx.reply(text, keyboard);
+}
+
+module.exports = menu;
