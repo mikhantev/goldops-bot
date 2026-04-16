@@ -1,7 +1,21 @@
+const { Telegraf } = require('telegraf');
+const config = require('./config');
+
 console.log('Бот запускается...');
+console.log('BOT_TOKEN length:', config.BOT_TOKEN ? config.BOT_TOKEN.length : 'NOT FOUND');
 
-setInterval(() => {
-  console.log('Бот жив. Время:', new Date().toISOString());
-}, 10000);
+const bot = new Telegraf(config.BOT_TOKEN);
 
-console.log('Тестовый бот запущен. Ничего больше не делает.');
+bot.start((ctx) => {
+  ctx.reply('Бот работает!\nНапишите /menu');
+});
+
+bot.command('menu', (ctx) => {
+  ctx.reply('Главное меню:\n1. Приём золота\n2. Отправка золота');
+});
+
+bot.launch()
+  .then(() => console.log('✅ Бот успешно подключён к Telegram'))
+  .catch(err => console.error('❌ Ошибка подключения:', err.message));
+
+console.log('Ожидаем подключения к Telegram...');
