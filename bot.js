@@ -1,26 +1,27 @@
+const express = require('express');
 const { Telegraf } = require('telegraf');
 const config = require('./config');
 
+const app = express();
 const bot = new Telegraf(config.BOT_TOKEN);
 
-console.log('🚀 GoldOps Webhook Bot starting...');
+console.log('🚀 GoldOps Bot starting with Express + Webhook...');
 
-bot.start((ctx) => ctx.reply('✅ Бот GoldOps запущен!\nНапишите /menu'));
+// Команды
+bot.start((ctx) => ctx.reply('✅ Бот GoldOps работает!\n\nНапишите /menu'));
 
 bot.command('menu', (ctx) => {
   ctx.reply('Главное меню:\n📥 Приём золота\n📤 Отправка золота');
 });
 
-// Это самый важный блок для Railway
-const webhookHandler = bot.webhookCallback('/webhook');
+// Webhook маршрут
+app.use(bot.webhookCallback('/webhook'));
 
-module.exports = (req, res) => {
-  if (req.method === 'POST') {
-    webhookHandler(req, res);
-  } else {
-    res.status(200).send('OK');
-  }
-};
+// Health check
+app.get('/', (req, res) => res.send('Bot is running'));
 
-console.log('✅ Webhook handler готов');
-console.log('Публичный URL: ' + (process.env.RAILWAY_PUBLIC_DOMAIN || 'unknown'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`Webhook URL: https://${process.env.RAILWAY_PUBLIC_DOMAIN || 'your-domain'}.up.railway.app/webhook`);
+});
