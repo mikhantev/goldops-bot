@@ -21,7 +21,7 @@ const menu = {
       ? '✅ Язык установлен на Русский.' 
       : '✅ Language set to English.');
 
-    setTimeout(() => showMainMenu(ctx, lang), 1000);
+    setTimeout(() => showMainMenu(ctx, lang), 800);
   }
 };
 
@@ -34,8 +34,7 @@ function showMainMenu(ctx, lang = 'ru') {
         ['📥 Приём золота', '📥 Gold Intake'],
         ['📤 Отправка золота', '📤 Send Gold'],
         ['⛽ Заправка топлива', '⛽ Fuel Refill'],
-        ['📊 Директорский бриф', '📊 Director Brief'],
-        ['🔄 Смена языка', '🔄 Change Language']
+        ['📊 Директорский бриф', '📊 Director Brief']
       ],
       resize_keyboard: true,
       persistent: true
