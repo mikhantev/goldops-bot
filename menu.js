@@ -24,14 +24,17 @@ const menu = {
     setTimeout(() => showMainMenu(ctx, lang), 800);
   },
 
-  // Новая функция для смены языка из главного меню
+  // Работает смена языка из главного меню
   changeLanguage: (ctx) => {
     showLanguageMenu(ctx);
+  },
+
+  showMainMenu: (ctx, lang = 'ru') => {
+    showMainMenuInternal(ctx, lang);
   }
 };
 
-// Главное меню только на выбранном языке
-function showMainMenu(ctx, lang = 'ru') {
+function showMainMenuInternal(ctx, lang = 'ru') {
   if (lang === 'ru') {
     ctx.reply('👋 Главное меню GoldOps:', {
       reply_markup: {
