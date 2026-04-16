@@ -1,6 +1,9 @@
+// menu.js — Полное главное меню
+
 const menu = {
+
   showLanguageMenu: (ctx) => {
-    ctx.reply('Выберите язык / Choose language:', {
+    ctx.reply('🌍 Выберите язык / Choose language:', {
       reply_markup: {
         keyboard: [
           ['🇷🇺 Русский'],
@@ -13,34 +16,37 @@ const menu = {
   },
 
   handleLanguage: (ctx) => {
-    const text = ctx.message.text;
+    const text = ctx.message.text || '';
     const lang = text.includes('Русский') ? 'ru' : 'en';
 
-    // Здесь можно сохранить язык пользователя, пока просто выводим
-    ctx.reply(lang === 'ru' ? '✅ Язык установлен: Русский' : '✅ Language set: English');
+    ctx.reply(lang === 'ru' 
+      ? '✅ Язык установлен на Русский.' 
+      : '✅ Language set to English.');
 
-    setTimeout(() => {
-      showMainMenu(ctx, lang);
-    }, 800);
+    setTimeout(() => showMainMenu(ctx, lang), 1000);
   }
 };
 
 function showMainMenu(ctx, lang = 'ru') {
-  const keyboard = {
+  const isRussian = lang === 'ru';
+
+  const text = isRussian 
+    ? '👋 Главное меню GoldOps:' 
+    : '👋 GoldOps Main Menu:';
+
+  ctx.reply(text, {
     reply_markup: {
       keyboard: [
         ['📥 Приём золота', '📥 Gold Intake'],
-        ['📤 Отправка золота', '📤 Send Gold']
+        ['📤 Отправка золота', '📤 Send Gold'],
+        ['⛽ Заправка топлива', '⛽ Fuel Refill'],
+        ['📊 Директорский бриф', '📊 Director Brief'],
+        ['🔄 Смена языка', '🔄 Change Language']
       ],
-      resize_keyboard: true
+      resize_keyboard: true,
+      persistent: true
     }
-  };
-
-  const text = lang === 'ru' 
-    ? '👋 Главное меню:' 
-    : '👋 Main Menu:';
-
-  ctx.reply(text, keyboard);
+  });
 }
 
 module.exports = menu;
