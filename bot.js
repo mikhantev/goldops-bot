@@ -5,14 +5,12 @@ const config = require('./config');
 const app = express();
 const bot = new Telegraf(config.BOT_TOKEN);
 
-console.log('🚀 GoldOps Bot — полная версия запущена');
+console.log('🚀 GoldOps Bot — полная версия');
 
-// Импорты
 const menu = require('./menu');
 const intake = require('./intake');
 
 bot.start((ctx) => menu.showLanguageMenu(ctx));
-
 bot.hears(['🇷🇺 Русский', '🇬🇧 English'], (ctx) => menu.handleLanguage(ctx));
 
 bot.hears(['📥 Приём золота', '📥 Gold Intake'], (ctx) => intake.start(ctx));
@@ -27,5 +25,5 @@ app.get('/', (req, res) => res.send('✅ GoldOps Bot is running'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Сервер запущен на порту ${PORT}`);
+  console.log(`✅ Бот запущен на порту ${PORT}`);
 });
