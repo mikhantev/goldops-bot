@@ -17,9 +17,11 @@ const menu = {
     const text = ctx.message.text || '';
     const lang = text.includes('Русский') ? 'ru' : 'en';
 
-    ctx.reply(lang === 'ru' ? '✅ Язык установлен на Русский.' : '✅ Language set to English.');
+    ctx.reply(lang === 'ru' 
+      ? '✅ Язык установлен на Русский.' 
+      : '✅ Language set to English.');
 
-    setTimeout(() => showMainMenu(ctx, lang), 800);
+    setTimeout(() => showMainMenu(ctx, lang), 1000);
   }
 };
 

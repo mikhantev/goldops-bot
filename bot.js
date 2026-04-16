@@ -5,7 +5,7 @@ const config = require('./config');
 const app = express();
 const bot = new Telegraf(config.BOT_TOKEN);
 
-console.log('🚀 GoldOps Bot — полная версия');
+console.log('🚀 GoldOps Bot — полная версия запущена');
 
 const menu = require('./menu');
 const intake = require('./intake');
@@ -25,5 +25,5 @@ app.get('/', (req, res) => res.send('✅ GoldOps Bot is running'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Бот запущен на порту ${PORT}`);
+  console.log(`✅ Бот успешно запущен на порту ${PORT}`);
 });
