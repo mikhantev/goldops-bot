@@ -3,17 +3,24 @@ const config = require('./config');
 
 const bot = new Telegraf(config.BOT_TOKEN);
 
-console.log('Webhook бот GoldOps инициализирован');
+console.log('🚀 GoldOps Webhook Bot starting...');
 
-bot.start((ctx) => {
-  ctx.reply('✅ Бот GoldOps работает через webhook!\n\nНапишите /menu');
-});
+bot.start((ctx) => ctx.reply('✅ Бот GoldOps запущен!\nНапишите /menu'));
 
 bot.command('menu', (ctx) => {
   ctx.reply('Главное меню:\n📥 Приём золота\n📤 Отправка золота');
 });
 
-// Экспорт для webhook (важно для Railway)
-module.exports = bot.webhookCallback('/webhook');
+// Это самый важный блок для Railway
+const webhookHandler = bot.webhookCallback('/webhook');
 
-console.log('Готов к приёму webhook запросов');
+module.exports = (req, res) => {
+  if (req.method === 'POST') {
+    webhookHandler(req, res);
+  } else {
+    res.status(200).send('OK');
+  }
+};
+
+console.log('✅ Webhook handler готов');
+console.log('Публичный URL: ' + (process.env.RAILWAY_PUBLIC_DOMAIN || 'unknown'));
