@@ -1,31 +1,21 @@
 const { Telegraf } = require('telegraf');
 const config = require('./config');
 
-const menu = require('./menu');
-const intake = require('./intake');
-
 const bot = new Telegraf(config.BOT_TOKEN);
 
 console.log('Бот инициализируется...');
+console.log('BOT_TOKEN length:', config.BOT_TOKEN.length);
 
-bot.start((ctx) => menu.showLanguageMenu(ctx));
+bot.start((ctx) => {
+  ctx.reply('Бот работает!\nНапишите /menu для меню');
+});
 
-bot.hears('🇷🇺 Русский', (ctx) => menu.setRussian(ctx));
-bot.hears('🇬🇧 English', (ctx) => menu.setEnglish(ctx));
-
-bot.hears(['📥 Приём золота', '📥 Gold Intake'], (ctx) => intake.start(ctx));
-
-bot.hears(['🔙 Назад', '🔙 Back'], (ctx) => menu.showMainMenu(ctx));
-
-bot.on('text', (ctx) => intake.handleText(ctx));
-bot.on('photo', (ctx) => intake.handlePhoto(ctx));
+bot.command('menu', (ctx) => {
+  ctx.reply('Главное меню:\n1. Приём золота\n2. Отправка золота');
+});
 
 bot.launch()
-  .then(() => {
-    console.log('✅ Бот успешно подключён к Telegram!');
-  })
-  .catch((err) => {
-    console.error('❌ Ошибка подключения:', err.message);
-  });
+  .then(() => console.log('✅ Бот запущен успешно'))
+  .catch(err => console.error('Ошибка:', err.message));
 
-console.log('Ожидаем подключения к Telegram...');
+console.log('Ожидаем подключения...');
