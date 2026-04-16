@@ -1,14 +1,7 @@
-const { Telegraf } = require('telegraf');
-const config = require('./config');
+console.log('Бот запускается...');
 
-const bot = new Telegraf(config.BOT_TOKEN);
+setInterval(() => {
+  console.log('Бот жив. Время:', new Date().toISOString());
+}, 10000);
 
-bot.start((ctx) => {
-  ctx.reply('Бот запущен!\nНапишите /start для теста');
-});
-
-bot.launch()
-  .then(() => console.log('✅ Бот запущен'))
-  .catch(err => console.error('Ошибка:', err.message));
-
-console.log('Запуск бота...');
+console.log('Тестовый бот запущен. Ничего больше не делает.');
