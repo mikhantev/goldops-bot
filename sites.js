@@ -1,11 +1,12 @@
 const { GoogleSpreadsheet } = require('google-spreadsheet');
+const { JWT } = require('google-auth-library');
 const config = require('./config');
 
 let cache = null;
 let cacheTime = 0;
 const CACHE_TTL = 10 * 60 * 1000;
 
-async function getDoc() {
+function getAuthClient() {
   console.log('SPREADSHEET_ID =', config.SPREADSHEET_ID);
   console.log('SERVICE_ACCOUNT_EMAIL =', config.GOOGLE_SERVICE_ACCOUNT_EMAIL);
   console.log('PRIVATE_KEY_EXISTS =', !!config.GOOGLE_PRIVATE_KEY);
@@ -20,12 +21,18 @@ async function getDoc() {
     throw new Error('GOOGLE_PRIVATE_KEY is missing');
   }
 
-  const doc = new GoogleSpreadsheet(config.SPREADSHEET_ID);
-
-  await doc.useServiceAccountAuth({
-    client_email: config.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    private_key: config.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n')
+  return new JWT({
+    email: config.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    key: config.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    scopes: [
+      'https://www.googleapis.com/auth/spreadsheets'
+    ]
   });
+}
+
+async function getDoc() {
+  const auth = getAuthClient();
+  const doc = new GoogleSpreadsheet(config.SPREADSHEET_ID, auth);
 
   await doc.loadInfo();
   console.log('DOC TITLE =', doc.title);
@@ -141,6 +148,7 @@ async function addGoldShipment(data) {
       Status: data.status || 'CREATED'
     });
 
+    console.log('✅ Gold shipment added:', data.shipmentId);
     return true;
   } catch (error) {
     console.error('❌ Error adding Gold Shipment FULL:', error);
