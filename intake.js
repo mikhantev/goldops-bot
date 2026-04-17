@@ -10,8 +10,7 @@ function start(ctx) {
   userState[userId] = { 
     step: 'select_site',
     history: ['select_site'],
-    language: language,
-    timestamp: new Date()
+    language: language
   };
 
   const t = getTranslations(language);
@@ -33,12 +32,13 @@ function start(ctx) {
 function handleText(ctx) {
   const userId = ctx.from.id;
   const text = ctx.message.text.trim();
-  const state = userState[userId];
+  let state = userState[userId];
 
   if (!state) return;
 
   const t = getTranslations(state.language);
 
+  // Кнопка Назад
   if (text === t.back) {
     goBack(ctx, userId);
     return;
@@ -119,10 +119,13 @@ function handleText(ctx) {
     if (text === t.confirmBtn) {
       state.step = 'send_photo';
       ctx.reply(t.sendPhoto);
-    } else if (text === t.cancelBtn) {
+    } 
+    else if (text === t.cancelBtn) {
       ctx.reply(t.operationCancelled);
       delete userState[userId];
-      require('./menu').showMainMenu(ctx, state.language);   // ← исправлено
+      // ← Исправлено: надёжный возврат в главное меню
+      const menuModule = require('./menu');
+      menuModule.showMainMenu(ctx, state.language);
       console.log(`[INTAKE] User ${userId} cancelled operation`);
     }
   }
@@ -160,43 +163,44 @@ function handlePhoto(ctx) {
 
   if (state && state.step === 'send_photo') {
     const t = getTranslations(state.language);
-    const commentLine = state.comment ? `Comment: ${state.comment}\n` : '';
 
-    console.log(`[INTAKE SUCCESS] User ${userId} | Site: ${state.site} | Area: ${state.area} | Weight: ${state.weight}g | Purity: ${state.purity}%`);
+    console.log(`[INTAKE SUCCESS] User ${userId} | Site: ${state.site} | Weight: ${state.weight}g`);
 
     ctx.reply(t.successMessage +
       `Site: ${state.site}\n` +
-      `Area: ${state.area}\n` +
-      `Warehouse: ${state.warehouse}\n` +
       `Type: ${state.goldType}\n` +
       `Weight: ${state.weight} g\n` +
       `Purity: ${state.purity}%\n` +
-      commentLine +
       `\nPhoto received.`);
 
     setTimeout(() => {
       delete userState[userId];
-      require('./menu').showMainMenu(ctx, state.language);   // ← исправлено: возврат в главное меню
+      // ← Исправлено: надёжный возврат в главное меню после успеха
+      const menuModule = require('./menu');
+      menuModule.showMainMenu(ctx, state.language);
     }, 1500);
   }
 }
 
-// ==================== НАЗАД ====================
+// ==================== КНОПКА НАЗАД ====================
 function goBack(ctx, userId) {
   const state = userState[userId];
   if (!state || state.history.length <= 1) {
+    // Если дошли до начала — возвращаем в главное меню
     delete userState[userId];
-    require('./menu').showMainMenu(ctx, state ? state.language : 'ru');   // ← исправлено
+    const menuModule = require('./menu');
+    menuModule.showMainMenu(ctx, state ? state.language : 'ru');
     return;
   }
 
+  // Возврат на предыдущий шаг
   state.history.pop();
   state.step = state.history[state.history.length - 1];
 
   const t = getTranslations(state.language);
 
   if (state.step === 'select_site') {
-    start(ctx);   // перезапускаем шаг выбора участка
+    start(ctx);
   } else if (state.step === 'select_area') {
     ctx.reply(t.chooseArea, { reply_markup: { keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}]], resize_keyboard: true }});
   } else if (state.step === 'select_warehouse') {
