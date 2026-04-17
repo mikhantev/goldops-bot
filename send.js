@@ -1,7 +1,8 @@
 const sites = require('./sites');
 
-/** Глобальное хранилище языка пользователя (надёжнее ctx.session) */
-const userLanguage = {};
+// Глобальное хранилище языка (используется menu.js и send.js)
+if (!global.userLanguage) {
+  global.userLanguage = {};
 
 /**
  * @typedef {Object} UserState
@@ -115,7 +116,7 @@ async function start(ctx) {
   try {
     const userId = ctx.from.id;
 
-    // Надёжное получение языка из глобального хранилища + сессии
+    // Надёжное определение языка
     let lang = userLanguage[userId] || ctx.session?.language || 'ru';
     if (lang !== 'ru' && lang !== 'en') lang = 'ru';
 

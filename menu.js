@@ -44,11 +44,7 @@ const translations = {
   }
 };
 
-/**
- * Получить переводы для выбранного языка
- * @param {Language} lang 
- * @returns {MenuTranslations}
- */
+/** @param {Language} lang */
 function getTranslations(lang) {
   return translations[lang] || translations.ru;
 }
@@ -59,7 +55,7 @@ function getTranslations(lang) {
  */
 async function showLanguageMenu(ctx) {
   try {
-    await ctx.reply(getTranslations('ru').languageSelection, {  // всегда показываем на двух языках
+    await ctx.reply(getTranslations('ru').languageSelection, {
       reply_markup: {
         keyboard: [
           ['🇷🇺 Русский'],
@@ -75,7 +71,7 @@ async function showLanguageMenu(ctx) {
 }
 
 /**
- * Обработка выбора языка
+ * Обработка выбора языка + сохранение для send.js
  * @param {import('telegraf').Context} ctx 
  */
 async function handleLanguage(ctx) {
@@ -83,44 +79,35 @@ async function handleLanguage(ctx) {
     const text = ctx.message.text || '';
     const lang = text.includes('Русский') ? 'ru' : 'en';
 
+    const userId = ctx.from.id;
+
+    // ←←← КЛЮЧЕВАЯ СТРОКА: сохраняем язык глобально
+    if (global.userLanguage) {
+      global.userLanguage[userId] = lang;
+    }
+
     const t = getTranslations(lang);
 
     await ctx.reply(lang === 'ru' ? t.languageSetRu : t.languageSetEn);
 
     // Показываем главное меню на выбранном языке
     setTimeout(async () => {
-      try {
-        await ctx.reply(t.mainMenuTitle, {
-          reply_markup: {
-            keyboard: [
-              [t.intakeButton],
-              [t.sendButton],
-              [t.fuelButton],
-              [t.directorBriefButton],
-              [t.changeLanguageButton]
-            ],
-            resize_keyboard: true,
-            persistent: true
-          }
-        });
-      } catch (err) {
-        console.error('❌ showMainMenu ERROR:', err);
-      }
+      await showMainMenu(ctx, lang);
     }, 800);
 
   } catch (err) {
     console.error('❌ handleLanguage ERROR:', err);
-    await ctx.reply('Ошибка при смене языка / Language change error');
+    await ctx.reply('Ошибка выбора языка / Language selection error');
   }
 }
 
 /**
- * Полный перезапуск бота (как кнопка "Главное меню")
+ * Полный перезапуск с выбором языка
  * @param {import('telegraf').Context} ctx 
  */
 async function changeLanguage(ctx) {
   try {
-    await ctx.reply(getTranslations('ru').restartMessage); // можно сделать двуязычным, но обычно на русском
+    await ctx.reply('🔄 Перезапуск бота...');
 
     setTimeout(async () => {
       await showLanguageMenu(ctx);
@@ -131,7 +118,7 @@ async function changeLanguage(ctx) {
 }
 
 /**
- * Показать главное меню на выбранном языке
+ * Показать главное меню
  * @param {import('telegraf').Context} ctx 
  * @param {Language} lang 
  */
