@@ -153,32 +153,35 @@ async function getWarehouses() {
 async function addGoldShipment(data) {
   try {
     const doc = await getDoc();
-    const sheet = doc.sheetsByTitle['13_Gold_Transfers'];   // или '04_Gold_Shipments', если у тебя такой лист
+    const sheet = doc.sheetsByTitle['13_Gold_Transfers'];   // или '04_Gold_Shipments', если используешь этот лист
 
     if (!sheet) {
-      console.error('❌ Sheet for shipments not found');
-      return false;
+      throw new Error('Sheet "13_Gold_Transfers" not found');
     }
 
     await sheet.addRow({
-      Transfer_ID: data.shipmentId,
-      Date_Sent: data.createdAt,
-      From_Warehouse_ID: data.fromSiteId,
+      Transfer_ID: data.shipmentId || `SHP-${Date.now()}`,
+      Created_At: data.createdAt || new Date().toISOString(),
+      Sender_Telegram_User_ID: data.userId,
+      From_Site_ID: data.fromSiteId,
+      From_Site_Name: data.fromSiteName,
       To_Warehouse_ID: data.toWarehouseId,
+      To_Warehouse_Name: data.toWarehouseName,
       Gold_Type: data.goldType,
       Weight_Sent_g: data.weight,
       Purity: data.purity,
       Comment: data.comment || '',
-      Shipment_Photo_Attachment_ID: data.photoFileId || '',
-      Transfer_State: data.status || 'sent',
-      Sender_Telegram_User_ID: data.userId,
-      Created_At: data.createdAt
+      Photo_File_ID: data.photoFileId || '',
+      Latitude: data.latitude || '',
+      Longitude: data.longitude || '',
+      Google_Maps_Link: data.googleMapsLink || '',
+      Status: data.status || 'CREATED'
     });
 
-    console.log('✅ Shipment saved to 13_Gold_Transfers:', data.shipmentId);
+    console.log(`✅ Shipment saved to 13_Gold_Transfers: ${data.shipmentId}`);
     return true;
   } catch (error) {
-    console.error('❌ Error saving shipment:', error.message);
+    console.error('❌ Error adding Gold Shipment:', error);
     return false;
   }
 }
