@@ -21,7 +21,7 @@ function start(ctx) {
         [{ text: "SITE-001" }, { text: "SITE-002" }],
         [{ text: "SITE-003" }],
         [{ text: t.back }],
-        [{ text: "🏠 Главное меню" }]
+        [{ text: t.mainMenu }]
       ],
       resize_keyboard: true
     }
@@ -32,7 +32,7 @@ function start(ctx) {
 function handleText(ctx) {
   const userId = ctx.from.id;
   const text = ctx.message.text.trim();
-  const state = userState[userId];
+  let state = userState[userId];
 
   if (!state) {
     start(ctx);
@@ -41,13 +41,14 @@ function handleText(ctx) {
 
   const t = getTranslations(state.language);
 
-  // Кнопка "Главное меню" — ПОЛНЫЙ ПЕРЕЗАПУСК БОТА
-  if (text === "🏠 Главное меню") {
+  // Главное меню — полный перезапуск
+  if (text === t.mainMenu) {
     delete userState[userId];
-    require('./menu').showLanguageMenu(ctx);   // ← Полный перезапуск (выбор языка)
+    require('./menu').showLanguageMenu(ctx);
     return;
   }
 
+  // Кнопка Назад
   if (text === t.back) {
     goBack(ctx, userId);
     return;
@@ -60,7 +61,7 @@ function handleText(ctx) {
       state.history.push('select_area');
       ctx.reply(t.chooseArea, { 
         reply_markup: { 
-          keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], 
+          keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}], [{ text: t.mainMenu }]], 
           resize_keyboard: true 
         }
       });
@@ -72,7 +73,7 @@ function handleText(ctx) {
     state.history.push('select_warehouse');
     ctx.reply(t.chooseWarehouse, { 
       reply_markup: { 
-        keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], 
+        keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}], [{ text: t.mainMenu }]], 
         resize_keyboard: true 
       }
     });
@@ -83,13 +84,14 @@ function handleText(ctx) {
     state.history.push('select_gold_type');
     ctx.reply(t.chooseGoldType, { 
       reply_markup: { 
-        keyboard: [[{text:"Raw Gold"}], [{text:"Concentrate"}], [{text:"Dore"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], 
+        keyboard: [[{text:"Raw Gold"}], [{text:"Concentrate"}], [{text:"Dore"}], [{text:t.back}], [{ text: t.mainMenu }]], 
         resize_keyboard: true 
       }
     });
   } 
   else if (state.step === 'select_gold_type') {
-    if (['Raw Gold', 'Concentrate', 'Dore'].includes(text)) {
+    if (['Raw Gold', 'Concentrate', 'Dore'].includes(text) || 
+        ['Сырое золото', 'Концентрат', 'Доре'].includes(text)) {
       state.goldType = text;
       state.step = 'enter_weight';
       state.history.push('enter_weight');
@@ -119,7 +121,7 @@ function handleText(ctx) {
     ctx.reply(t.enterComment);
   } 
   else if (state.step === 'enter_comment') {
-    state.comment = (text === t.skipComment || text.toLowerCase() === 'skip') ? '' : text;
+    state.comment = (text === t.skipComment || text.toLowerCase() === 'skip' || text === 'Пропустить') ? '' : text;
     state.step = 'confirm';
     state.history.push('confirm');
     showConfirmation(ctx, state);
@@ -131,12 +133,12 @@ function handleText(ctx) {
     } else if (text === t.cancelBtn) {
       ctx.reply(t.operationCancelled);
       delete userState[userId];
-      require('./menu').showLanguageMenu(ctx);   // полный перезапуск
+      require('./menu').showLanguageMenu(ctx);
     }
   }
 }
 
-// ==================== ПОДТВЕРЖДЕНИЕ И ФОТО ====================
+// ==================== ПОДТВЕРЖДЕНИЕ ====================
 function showConfirmation(ctx, state) {
   const t = getTranslations(state.language);
   const commentLine = state.comment ? `Comment: ${state.comment}\n` : '';
@@ -156,7 +158,7 @@ function showConfirmation(ctx, state) {
         [{ text: t.confirmBtn }],
         [{ text: t.cancelBtn }],
         [{ text: t.back }],
-        [{ text: "🏠 Главное меню" }]
+        [{ text: t.mainMenu }]
       ],
       resize_keyboard: true
     }
@@ -172,14 +174,16 @@ function handlePhoto(ctx) {
 
     ctx.reply(t.successMessage +
       `Site: ${state.site}\n` +
+      `Area: ${state.area}\n` +
       `Type: ${state.goldType}\n` +
       `Weight: ${state.weight} g\n` +
       `Purity: ${state.purity}%\n` +
-      `\nPhoto received.`);
+      (state.comment ? `Comment: ${state.comment}\n` : '') +
+      `\n📸 Photo received.`);
 
     setTimeout(() => {
       delete userState[userId];
-      require('./menu').showLanguageMenu(ctx);   // полный перезапуск
+      require('./menu').showLanguageMenu(ctx);
     }, 1500);
   }
 }
@@ -189,7 +193,7 @@ function goBack(ctx, userId) {
   const state = userState[userId];
   if (!state || state.history.length <= 1) {
     delete userState[userId];
-    require('./menu').showLanguageMenu(ctx);   // полный перезапуск
+    require('./menu').showLanguageMenu(ctx);
     return;
   }
 
@@ -198,13 +202,20 @@ function goBack(ctx, userId) {
 
   const t = getTranslations(state.language);
 
-  if (state.step === 'select_site') start(ctx);
-  else if (state.step === 'select_area') {
-    ctx.reply(t.chooseArea, { reply_markup: { keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], resize_keyboard: true }});
+  if (state.step === 'select_site') {
+    start(ctx);
+  } else if (state.step === 'select_area') {
+    ctx.reply(t.chooseArea, { 
+      reply_markup: { keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}], [{ text: t.mainMenu }]], resize_keyboard: true }
+    });
   } else if (state.step === 'select_warehouse') {
-    ctx.reply(t.chooseWarehouse, { reply_markup: { keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], resize_keyboard: true }});
+    ctx.reply(t.chooseWarehouse, { 
+      reply_markup: { keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}], [{ text: t.mainMenu }]], resize_keyboard: true }
+    });
   } else if (state.step === 'select_gold_type') {
-    ctx.reply(t.chooseGoldType, { reply_markup: { keyboard: [[{text:"Raw Gold"}], [{text:"Concentrate"}], [{text:"Dore"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], resize_keyboard: true }});
+    ctx.reply(t.chooseGoldType, { 
+      reply_markup: { keyboard: [[{text:"Raw Gold"}], [{text:"Concentrate"}], [{text:"Dore"}], [{text:t.back}], [{ text: t.mainMenu }]], resize_keyboard: true }
+    });
   } else if (state.step === 'enter_weight') {
     ctx.reply(t.enterWeight);
   } else if (state.step === 'enter_purity') {
@@ -221,7 +232,7 @@ function getTranslations(lang) {
       chooseArea: '📍 Выберите площадь/зону (Area):',
       chooseWarehouse: '🏬 Выберите склад (Warehouse):',
       chooseGoldType: '🔸 Выберите тип золота:',
-      enterWeight: '⚖️ Введите вес золота в граммах (только число):',
+      enterWeight: '⚖️ Введите вес в граммах (только число):',
       enterPurity: '💎 Введите чистоту (%) (например: 92.5):',
       enterComment: '💬 Введите комментарий или напишите "Пропустить":',
       sendPhoto: '📸 Пришлите фото приёма золота (обязательно)',
@@ -230,6 +241,7 @@ function getTranslations(lang) {
       successMessage: '✅ Приём золота успешно зафиксирован!\n\n',
       operationCancelled: '❌ Операция отменена.',
       back: '🔙 Назад',
+      mainMenu: '🏠 Главное меню',
       errorWeight: '❌ Вес должен быть больше 0 и меньше 100000 г',
       errorPurity: '❌ Чистота должна быть от 0 до 100%',
       confirmBtn: '✅ Подтвердить',
@@ -250,6 +262,7 @@ function getTranslations(lang) {
       successMessage: '✅ Gold intake successfully recorded!\n\n',
       operationCancelled: '❌ Operation cancelled.',
       back: '🔙 Back',
+      mainMenu: '🏠 Main Menu',
       errorWeight: '❌ Weight must be between 0 and 100000 g',
       errorPurity: '❌ Purity must be between 0 and 100%',
       confirmBtn: '✅ Confirm',
