@@ -149,8 +149,41 @@ async function getWarehouses() {
     return [];
   }
 }
+// ==================== SAVE SHIPMENT ====================
+async function addGoldShipment(data) {
+  try {
+    const doc = await getDoc();
+    const sheet = doc.sheetsByTitle['13_Gold_Transfers'];   // или '04_Gold_Shipments', если у тебя такой лист
 
+    if (!sheet) {
+      console.error('❌ Sheet for shipments not found');
+      return false;
+    }
+
+    await sheet.addRow({
+      Transfer_ID: data.shipmentId,
+      Date_Sent: data.createdAt,
+      From_Warehouse_ID: data.fromSiteId,
+      To_Warehouse_ID: data.toWarehouseId,
+      Gold_Type: data.goldType,
+      Weight_Sent_g: data.weight,
+      Purity: data.purity,
+      Comment: data.comment || '',
+      Shipment_Photo_Attachment_ID: data.photoFileId || '',
+      Transfer_State: data.status || 'sent',
+      Sender_Telegram_User_ID: data.userId,
+      Created_At: data.createdAt
+    });
+
+    console.log('✅ Shipment saved to 13_Gold_Transfers:', data.shipmentId);
+    return true;
+  } catch (error) {
+    console.error('❌ Error saving shipment:', error.message);
+    return false;
+  }
+}
 module.exports = {
   getMiningSites,
-  getWarehouses
+  getWarehouses,
+  addGoldShipment   // ← обязательно добавь эту строку
 };
