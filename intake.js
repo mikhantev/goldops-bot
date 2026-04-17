@@ -41,14 +41,14 @@ function handleText(ctx) {
 
   const t = getTranslations(state.language);
 
-  // Главное меню в любой момент
+  // Кнопка "Главное меню" — просто перезапускаем start
   if (text === "🏠 Главное меню") {
     delete userState[userId];
-    require('./menu').showMainMenu(ctx, state.language);
+    start(ctx);        // ← как ты просил
     return;
   }
 
-  // Кнопка Назад
+  // Кнопка "Назад"
   if (text === t.back) {
     goBack(ctx, userId);
     return;
@@ -132,7 +132,7 @@ function handleText(ctx) {
     } else if (text === t.cancelBtn) {
       ctx.reply(t.operationCancelled);
       delete userState[userId];
-      require('./menu').showMainMenu(ctx, state.language);
+      start(ctx);   // ← возврат через start
     }
   }
 }
@@ -180,7 +180,7 @@ function handlePhoto(ctx) {
 
     setTimeout(() => {
       delete userState[userId];
-      require('./menu').showMainMenu(ctx, state.language);
+      start(ctx);   // ← возврат через start
     }, 1500);
   }
 }
@@ -190,7 +190,7 @@ function goBack(ctx, userId) {
   const state = userState[userId];
   if (!state || state.history.length <= 1) {
     delete userState[userId];
-    require('./menu').showMainMenu(ctx, state ? state.language : 'ru');
+    start(ctx);   // ← возврат через start
     return;
   }
 
