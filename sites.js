@@ -4,28 +4,41 @@ const config = require('./config');
 
 let cache = null;
 let cacheTime = 0;
-const CACHE_TTL = 10 * 60 * 1000;
+const CACHE_TTL = 10 * 60 * 1000; // 10 минут
 
 // ==================== AUTH ====================
 function getAuthClient() {
   let email;
   let key;
 
-  // 🔥 основной вариант — через base64 JSON
- if (config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64) {
-  const jsonString = Buffer.from(
-    config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64,
-    'base64'
-  ).toString('utf8');
+  console.log(
+    'BASE64_EXISTS =',
+    !!config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64
+  );
 
-  const creds = JSON.parse(jsonString);
+  if (config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64) {
+    const jsonString = Buffer.from(
+      config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64,
+      'base64'
+    ).toString('utf8');
 
-  email = creds.client_email;
-  key = creds.private_key;
-} else {
-  email = config.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  key = config.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-}
+    console.log('BASE64 JSON PREVIEW =', jsonString.slice(0, 120));
+
+    const creds = JSON.parse(jsonString);
+
+    console.log('PARSED CLIENT EMAIL =', creds.client_email);
+    console.log('PARSED PRIVATE KEY EXISTS =', !!creds.private_key);
+    console.log(
+      'PRIVATE KEY START =',
+      creds.private_key ? creds.private_key.slice(0, 30) : null
+    );
+
+    email = creds.client_email;
+    key = creds.private_key;
+  } else {
+    email = config.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    key = config.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  }
 
   console.log('SPREADSHEET_ID =', config.SPREADSHEET_ID);
   console.log('SERVICE_ACCOUNT_EMAIL =', email);
@@ -178,19 +191,7 @@ async function addGoldShipment(data) {
     return false;
   }
 }
-console.log(
-  'BASE64_EXISTS =',
-  !!config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64
-);
 
-if (config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64) {
-  const jsonString = Buffer.from(
-    config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64,
-    'base64'
-  ).toString('utf8');
-
-  console.log('BASE64 JSON PREVIEW =', jsonString.slice(0, 100));
-}
 module.exports = {
   getMiningSites,
   getWarehouses,
