@@ -12,21 +12,20 @@ function getAuthClient() {
   let key;
 
   // 🔥 основной вариант — через base64 JSON
-  if (config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64) {
-    const jsonString = Buffer.from(
-      config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64,
-      'base64'
-    ).toString('utf8');
+ if (config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64) {
+  const jsonString = Buffer.from(
+    config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64,
+    'base64'
+  ).toString('utf8');
 
-    const creds = JSON.parse(jsonString);
+  const creds = JSON.parse(jsonString);
 
-    email = creds.client_email;
-    key = creds.private_key;
-  } else {
-    // fallback (если вдруг будешь использовать старый способ)
-    email = config.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    key = config.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-  }
+  email = creds.client_email;
+  key = creds.private_key;
+} else {
+  email = config.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  key = config.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+}
 
   console.log('SPREADSHEET_ID =', config.SPREADSHEET_ID);
   console.log('SERVICE_ACCOUNT_EMAIL =', email);
@@ -179,7 +178,19 @@ async function addGoldShipment(data) {
     return false;
   }
 }
+console.log(
+  'BASE64_EXISTS =',
+  !!config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64
+);
 
+if (config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64) {
+  const jsonString = Buffer.from(
+    config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64,
+    'base64'
+  ).toString('utf8');
+
+  console.log('BASE64 JSON PREVIEW =', jsonString.slice(0, 100));
+}
 module.exports = {
   getMiningSites,
   getWarehouses,
