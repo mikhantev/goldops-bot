@@ -1,7 +1,7 @@
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const config = require('./config');
 
-// Кэш для производительности
+// Кэш
 let cache = null;
 let cacheTime = 0;
 const CACHE_TTL = 10 * 60 * 1000; // 10 минут
@@ -20,21 +20,34 @@ async function getDoc() {
 
 async function getMiningSites() {
   const now = Date.now();
-  if (cache && now - cacheTime < CACHE_TTL && cache.mining) {
+
+  if (cache && (now - cacheTime < CACHE_TTL) && cache.mining) {
+    console.log('MINING SITES FROM CACHE:', JSON.stringify(cache.mining, null, 2));
     return cache.mining;
   }
 
   try {
     const doc = await getDoc();
+    console.log('DOC LOADED OK. SHEETS:', Object.keys(doc.sheetsByTitle));
+
     const sheet = doc.sheetsByTitle['01_Sites'];
+    if (!sheet) {
+      console.error('❌ Sheet "01_Sites" not found');
+      return [];
+    }
+
     const rows = await sheet.getRows();
+    console.log('01_Sites ROWS COUNT:', rows.length);
 
     const mining = rows
       .filter(row => (row.Status || row.get('Status')) === 'Active')
       .map(row => ({
         code: row.Site_ID || row.SiteCode || row.get('Site_ID'),
         name: row.Site_Name || row.SiteName || row.get('Site_Name')
-      }));
+      }))
+      .filter(x => x.code || x.name);
+
+    console.log('MINING SITES LOADED:', JSON.stringify(mining, null, 2));
 
     cache = cache || {};
     cache.mining = mining;
@@ -42,28 +55,40 @@ async function getMiningSites() {
 
     return mining;
   } catch (error) {
-    console.error('❌ Error loading Mining Sites:', error.message);
+    console.error('❌ Error loading Mining Sites FULL:', error);
     return [];
   }
 }
 
 async function getWarehouses() {
   const now = Date.now();
-  if (cache && now - cacheTime < CACHE_TTL && cache.warehouses) {
+
+  if (cache && (now - cacheTime < CACHE_TTL) && cache.warehouses) {
+    console.log('WAREHOUSES FROM CACHE:', JSON.stringify(cache.warehouses, null, 2));
     return cache.warehouses;
   }
 
   try {
     const doc = await getDoc();
+
     const sheet = doc.sheetsByTitle['03_Warehouses'];
+    if (!sheet) {
+      console.error('❌ Sheet "03_Warehouses" not found');
+      return [];
+    }
+
     const rows = await sheet.getRows();
+    console.log('03_Warehouses ROWS COUNT:', rows.length);
 
     const warehouses = rows
       .filter(row => (row.Status || row.get('Status')) === 'Active')
       .map(row => ({
         code: row.Warehouse_ID || row.WarehouseCode || row.get('Warehouse_ID'),
         name: row.Warehouse_Name || row.WarehouseName || row.get('Warehouse_Name')
-      }));
+      }))
+      .filter(x => x.code || x.name);
+
+    console.log('WAREHOUSES LOADED:', JSON.stringify(warehouses, null, 2));
 
     cache = cache || {};
     cache.warehouses = warehouses;
@@ -71,7 +96,7 @@ async function getWarehouses() {
 
     return warehouses;
   } catch (error) {
-    console.error('❌ Error loading Warehouses:', error.message);
+    console.error('❌ Error loading Warehouses FULL:', error);
     return [];
   }
 }
@@ -101,9 +126,10 @@ async function addGoldShipment(data) {
       Status: data.status || 'CREATED'
     });
 
+    console.log('✅ Gold shipment added:', data.shipmentId);
     return true;
   } catch (error) {
-    console.error('❌ Error adding Gold Shipment:', error.message);
+    console.error('❌ Error adding Gold Shipment FULL:', error);
     return false;
   }
 }
