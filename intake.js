@@ -7,7 +7,6 @@ function start(ctx) {
   let language = 'ru';
   if (ctx.message.text === '📥 Gold Intake') language = 'en';
 
-  // Полный сброс состояния при старте
   userState[userId] = { 
     step: 'select_site',
     history: ['select_site'],
@@ -42,14 +41,14 @@ function handleText(ctx) {
 
   const t = getTranslations(state.language);
 
-  // Кнопка "Главное меню" — мгновенный возврат
+  // Главное меню в любой момент
   if (text === "🏠 Главное меню") {
     delete userState[userId];
     require('./menu').showMainMenu(ctx, state.language);
     return;
   }
 
-  // Кнопка "Назад"
+  // Кнопка Назад
   if (text === t.back) {
     goBack(ctx, userId);
     return;
@@ -138,7 +137,7 @@ function handleText(ctx) {
   }
 }
 
-// ==================== ПОДТВЕРЖДЕНИЕ И ФОТО ====================
+// ==================== ПОДТВЕРЖДЕНИЕ ====================
 function showConfirmation(ctx, state) {
   const t = getTranslations(state.language);
   const commentLine = state.comment ? `Comment: ${state.comment}\n` : '';
