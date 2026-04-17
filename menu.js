@@ -1,7 +1,6 @@
 const menu = {
-
-  showLanguageMenu: (ctx) => {
-    ctx.reply('🌍 Выберите язык / Choose language:', {
+  showLanguageMenu: async (ctx) => {
+    await ctx.reply('🌍 Выберите язык / Choose language:', {
       reply_markup: {
         keyboard: [
           ['🇷🇺 Русский'],
@@ -13,29 +12,47 @@ const menu = {
     });
   },
 
-  handleLanguage: (ctx) => {
-    const text = ctx.message.text || '';
-    const lang = text.includes('Русский') ? 'ru' : 'en';
+  handleLanguage: async (ctx) => {
+    try {
+      const text = ctx.message.text || '';
+      const lang = text.includes('Русский') ? 'ru' : 'en';
 
-    ctx.reply(lang === 'ru' 
-      ? '✅ Язык установлен на Русский.' 
-      : '✅ Language set to English.');
+      await ctx.reply(
+        lang === 'ru'
+          ? '✅ Язык установлен на Русский.'
+          : '✅ Language set to English.'
+      );
 
-    setTimeout(() => {
-      showMainMenu(ctx, lang);
-    }, 800);
+      setTimeout(async () => {
+        try {
+          await menu.showMainMenu(ctx, lang);
+        } catch (err) {
+          console.error('SHOW MAIN MENU ERROR:', err);
+        }
+      }, 800);
+    } catch (err) {
+      console.error('HANDLE LANGUAGE ERROR:', err);
+    }
   },
 
-  changeLanguage: (ctx) => {
-    ctx.reply('🔄 Перезапуск бота...');
-    setTimeout(() => {
-      menu.showLanguageMenu(ctx);
-    }, 600);
+  changeLanguage: async (ctx) => {
+    try {
+      await ctx.reply('🔄 Перезапуск бота...');
+      setTimeout(async () => {
+        try {
+          await menu.showLanguageMenu(ctx);
+        } catch (err) {
+          console.error('SHOW LANGUAGE MENU ERROR:', err);
+        }
+      }, 600);
+    } catch (err) {
+      console.error('CHANGE LANGUAGE ERROR:', err);
+    }
   },
 
-  showMainMenu: (ctx, lang = 'ru') => {
+  showMainMenu: async (ctx, lang = 'ru') => {
     if (lang === 'ru') {
-      ctx.reply('👋 Главное меню GoldOps:', {
+      await ctx.reply('👋 Главное меню GoldOps:', {
         reply_markup: {
           keyboard: [
             ['📥 Приём золота'],
@@ -45,11 +62,11 @@ const menu = {
             ['🔄 Смена языка']
           ],
           resize_keyboard: true,
-          persistent: true
+          is_persistent: true
         }
       });
     } else {
-      ctx.reply('👋 GoldOps Main Menu:', {
+      await ctx.reply('👋 GoldOps Main Menu:', {
         reply_markup: {
           keyboard: [
             ['📥 Gold Intake'],
@@ -59,7 +76,7 @@ const menu = {
             ['🔄 Change Language']
           ],
           resize_keyboard: true,
-          persistent: true
+          is_persistent: true
         }
       });
     }
