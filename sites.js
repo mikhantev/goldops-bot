@@ -28,7 +28,7 @@ async function getMiningSites() {
   const now = Date.now();
 
   if (cache && (now - cacheTime < CACHE_TTL) && cache.mining) {
-    console.log('MINING SITES FROM CACHE:', cache.mining);
+    console.log('MINING SITES FROM CACHE =', cache.mining);
     return cache.mining;
   }
 
@@ -76,6 +76,7 @@ async function getWarehouses() {
   const now = Date.now();
 
   if (cache && (now - cacheTime < CACHE_TTL) && cache.warehouses) {
+    console.log('WAREHOUSES FROM CACHE =', cache.warehouses);
     return cache.warehouses;
   }
 
@@ -89,6 +90,7 @@ async function getWarehouses() {
     }
 
     const rows = await sheet.getRows();
+    console.log('03_Warehouses rows count =', rows.length);
 
     const warehouses = rows
       .filter(row => (row.Status || row.get('Status')) === 'Active')
@@ -97,6 +99,8 @@ async function getWarehouses() {
         name: row.Warehouse_Name || row.WarehouseName || row.get('Warehouse_Name')
       }))
       .filter(x => x.code || x.name);
+
+    console.log('WAREHOUSES LOADED =', warehouses);
 
     cache = cache || {};
     cache.warehouses = warehouses;
