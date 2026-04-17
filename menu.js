@@ -21,16 +21,8 @@ const menu = {
       ? '✅ Язык установлен на Русский.' 
       : '✅ Language set to English.');
 
-    setTimeout(() => showMainMenu(ctx, lang), 800);
-  },
-
-  // Кнопка "Смена языка" — работает точно как "Главное меню" (полный перезапуск бота)
-  changeLanguage: (ctx) => {
-    ctx.reply('/start');   // ← Полный перезапуск бота через /start
-  },
-
-  showMainMenu: (ctx, lang = 'ru') => {
-    if (lang === 'ru') {
+    // Простой рабочий вызов меню (как было раньше)
+    setTimeout(() => {
       ctx.reply('👋 Главное меню GoldOps:', {
         reply_markup: {
           keyboard: [
@@ -44,21 +36,7 @@ const menu = {
           persistent: true
         }
       });
-    } else {
-      ctx.reply('👋 GoldOps Main Menu:', {
-        reply_markup: {
-          keyboard: [
-            ['📥 Gold Intake'],
-            ['📤 Send Gold'],
-            ['⛽ Fuel Refill'],
-            ['📊 Director Brief'],
-            ['🔄 Change Language']
-          ],
-          resize_keyboard: true,
-          persistent: true
-        }
-      });
-    }
+    }, 800);
   }
 };
 
