@@ -3,7 +3,7 @@ const sites = require('./sites');
 // Глобальное хранилище языка (используется menu.js и send.js)
 if (!global.userLanguage) {
   global.userLanguage = {};
-
+}
 /**
  * @typedef {Object} UserState
  * @property {string} step
