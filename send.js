@@ -1,6 +1,147 @@
 const sites = require('./sites');
 
+/**
+ * @typedef {Object} UserState
+ * @property {string} step
+ * @property {string[]} history
+ * @property {'ru'|'en'} language
+ * @property {boolean} isDirector
+ * @property {string} [defaultSite]
+ * @property {string} [defaultSiteName]
+ * @property {string} [fromSite]
+ * @property {string} [fromSiteName]
+ * @property {string} [toSite]
+ * @property {string} [toSiteName]
+ * @property {string} [goldType]
+ * @property {number} [weight]
+ * @property {number} [purity]
+ * @property {string} [comment]
+ * @property {string} [photoFileId]
+ * @property {number} [latitude]
+ * @property {number} [longitude]
+ */
+
+/** @type {Object.<number, UserState>} */
 let userState = {};
+
+/**
+ * @typedef {Object} Translations
+ * @property {string} chooseFromSite
+ * @property {string} chooseToSite
+ * @property {string} chooseGoldType
+ * @property {string} enterWeight
+ * @property {string} enterPurity
+ * @property {string} enterComment
+ * @property {string} confirmationHeader
+ * @property {string} confirmQuestion
+ * @property {string} operationCancelled
+ * @property {string} errorInvalidSite
+ * @property {string} errorInvalidWarehouse
+ * @property {string} errorInvalidGoldType
+ * @property {string} errorWeight
+ * @property {string} errorPurity
+ * @property {string} confirmBtn
+ * @property {string} cancelBtn
+ * @property {string} back
+ * @property {string} mainMenu
+ * @property {string} skipComment
+ * @property {string} sendPhotoRequired
+ * @property {string} sendLocationRequired
+ * @property {string} sendLocationBtn
+ * @property {string} successMessage
+ * @property {string} locationSaved
+ * @property {string} openMap
+ * @property {string} saveError
+ * @property {string} sitesLoadError
+ * @property {string} warehousesLoadError
+ * @property {string} labelFrom
+ * @property {string} labelTo
+ * @property {string} labelType
+ * @property {string} labelWeight
+ * @property {string} labelPurity
+ * @property {string} labelComment
+ */
+
+/** @type {Object.<'ru'|'en', Translations>} */
+const translations = {
+  ru: {
+    chooseFromSite: '📍 Откуда отправляем:',
+    chooseToSite: '📍 Куда отправляем:',
+    chooseGoldType: '🔸 Выберите тип золота:',
+    enterWeight: '⚖️ Введите вес в граммах:',
+    enterPurity: '💎 Введите чистоту (%):',
+    enterComment: '💬 Введите комментарий или "Пропустить":',
+    confirmationHeader: '📦 Подтверждение отправки',
+    confirmQuestion: 'Всё верно?',
+    operationCancelled: '❌ Отправка отменена.',
+    errorInvalidSite: '❌ Выберите участок из списка.',
+    errorInvalidWarehouse: '❌ Выберите склад из списка.',
+    errorInvalidGoldType: '❌ Выберите тип золота из списка.',
+    errorWeight: '❌ Вес должен быть больше 0 и меньше 100000',
+    errorPurity: '❌ Чистота должна быть от 0 до 100',
+    confirmBtn: '✅ Подтвердить',
+    cancelBtn: '❌ Отменить',
+    back: '🔙 Назад',
+    mainMenu: '🏠 Главное меню',
+    skipComment: 'Пропустить',
+    sendPhotoRequired: '📸 Пришлите фото отправки золота',
+    sendLocationRequired: '📍 Пришлите геолокацию отправки (обязательно)',
+    sendLocationBtn: '📍 Отправить мою геолокацию',
+    successMessage: '✅ Отправка золота успешно сохранена!\n\n',
+    locationSaved: 'Геолокация сохранена',
+    openMap: 'Открыть на карте',
+    saveError: '❌ Не удалось сохранить отправку',
+    sitesLoadError: '❌ Участки не загрузились из таблицы. Попробуйте позже.',
+    warehousesLoadError: '❌ Склады не загрузились из таблицы',
+    labelFrom: 'Откуда',
+    labelTo: 'Куда',
+    labelType: 'Тип',
+    labelWeight: 'Вес',
+    labelPurity: 'Чистота',
+    labelComment: 'Комментарий'
+  },
+  en: {
+    chooseFromSite: '📍 From site:',
+    chooseToSite: '📍 To warehouse:',
+    chooseGoldType: '🔸 Select gold type:',
+    enterWeight: '⚖️ Enter weight in grams:',
+    enterPurity: '💎 Enter purity (%):',
+    enterComment: '💬 Enter comment or "Skip":',
+    confirmationHeader: '📦 Shipment confirmation',
+    confirmQuestion: 'Confirm?',
+    operationCancelled: '❌ Shipment cancelled.',
+    errorInvalidSite: '❌ Select a site from the list.',
+    errorInvalidWarehouse: '❌ Select a warehouse from the list.',
+    errorInvalidGoldType: '❌ Select a gold type from the list.',
+    errorWeight: '❌ Weight must be greater than 0 and less than 100000',
+    errorPurity: '❌ Purity must be between 0 and 100',
+    confirmBtn: '✅ Confirm',
+    cancelBtn: '❌ Cancel',
+    back: '🔙 Back',
+    mainMenu: '🏠 Main Menu',
+    skipComment: 'Skip',
+    sendPhotoRequired: '📸 Please send shipment photo',
+    sendLocationRequired: '📍 Please send location of the shipment (required)',
+    sendLocationBtn: '📍 Send my location',
+    successMessage: '✅ Gold shipment successfully saved!\n\n',
+    locationSaved: 'Location saved',
+    openMap: 'Open on map',
+    saveError: '❌ Failed to save shipment',
+    sitesLoadError: '❌ Sites failed to load from table. Please try later.',
+    warehousesLoadError: '❌ Warehouses failed to load from table',
+    labelFrom: 'From',
+    labelTo: 'To',
+    labelType: 'Type',
+    labelWeight: 'Weight',
+    labelPurity: 'Purity',
+    labelComment: 'Comment'
+  }
+};
+
+/** @param {string} lang */
+function getTranslations(lang) {
+  return translations[lang] || translations.ru;
+}
 
 // ==================== ЗАПУСК ====================
 async function start(ctx) {
@@ -8,7 +149,8 @@ async function start(ctx) {
 
   try {
     const userId = ctx.from.id;
-    const lang = ctx.session?.language || ctx.session?.lang || 'ru';
+    let lang = ctx.session?.language || 'ru';
+    if (lang !== 'ru' && lang !== 'en') lang = 'ru';
 
     const userData = await getUserData(userId);
     const isDirector = userData.role === 'director';
@@ -25,7 +167,7 @@ async function start(ctx) {
     const t = getTranslations(lang);
 
     if (!isDirector && userData.defaultSite) {
-      console.log('👤 OPERATOR MODE, DEFAULT SITE =', userData.defaultSite);
+      console.log(`👤 OPERATOR MODE (${lang}), DEFAULT SITE =`, userData.defaultSite);
       userState[userId].fromSite = userData.defaultSite;
       userState[userId].fromSiteName = userData.defaultSiteName || userData.defaultSite;
       await proceedToToSite(ctx, userId);
@@ -154,7 +296,6 @@ async function handleText(ctx) {
       return ctx.reply(t.enterWeight);
     }
 
-    // WEIGHT
     if (state.step === 'enter_weight') {
       const weight = parseFloat(text.replace(',', '.'));
       if (isNaN(weight) || weight <= 0 || weight > 100000) return ctx.reply(t.errorWeight);
@@ -164,7 +305,6 @@ async function handleText(ctx) {
       return ctx.reply(t.enterPurity);
     }
 
-    // PURITY
     if (state.step === 'enter_purity') {
       const purity = parseFloat(text.replace(',', '.'));
       if (isNaN(purity) || purity < 0 || purity > 100) return ctx.reply(t.errorPurity);
@@ -174,7 +314,6 @@ async function handleText(ctx) {
       return ctx.reply(t.enterComment);
     }
 
-    // COMMENT
     if (state.step === 'enter_comment') {
       state.comment = (text.toLowerCase() === 'skip' || text === t.skipComment) ? '' : text;
       state.step = 'confirm';
@@ -182,7 +321,6 @@ async function handleText(ctx) {
       return showConfirmation(ctx, state);
     }
 
-    // CONFIRM
     if (state.step === 'confirm') {
       if (text === t.confirmBtn) {
         state.step = 'send_photo';
@@ -200,6 +338,8 @@ async function handleText(ctx) {
     await ctx.reply('❌ Ошибка обработки отправки / Processing error');
   }
 }
+
+// showConfirmation, handlePhoto, handleLocation, goBack остаются без изменений (они уже используют t.*)
 
 async function showConfirmation(ctx, s) {
   const t = getTranslations(s.language);
@@ -225,7 +365,8 @@ async function showConfirmation(ctx, s) {
   });
 }
 
-// ==================== PHOTO + LOCATION ====================
+// handlePhoto, handleLocation, goBack — оставляем как в предыдущей версии (они уже хорошие)
+
 async function handlePhoto(ctx) {
   try {
     const userId = ctx.from.id;
@@ -288,7 +429,7 @@ async function handleLocation(ctx) {
       photoFileId: state.photoFileId,
       latitude: state.latitude,
       longitude: state.longitude,
-      googleMapsLink: googleMapsLink,
+      googleMapsLink,
       status: 'CREATED'
     });
 
@@ -343,84 +484,6 @@ async function goBack(ctx, userId) {
       reply_markup: { keyboard: [[{ text: t.sendLocationBtn, request_location: true }]], resize_keyboard: true }
     });
   }
-}
-
-function getTranslations(lang) {
-  const tr = {
-    ru: {
-      chooseFromSite: '📍 Откуда отправляем:',
-      chooseToSite: '📍 Куда отправляем:',
-      chooseGoldType: '🔸 Выберите тип золота:',
-      enterWeight: '⚖️ Введите вес в граммах:',
-      enterPurity: '💎 Введите чистоту (%):',
-      enterComment: '💬 Введите комментарий или "Пропустить":',
-      confirmationHeader: '📦 Подтверждение отправки',
-      confirmQuestion: 'Всё верно?',
-      operationCancelled: '❌ Отправка отменена.',
-      errorInvalidSite: '❌ Выберите участок из списка.',
-      errorInvalidWarehouse: '❌ Выберите склад из списка.',
-      errorInvalidGoldType: '❌ Выберите тип золота из списка.',
-      errorWeight: '❌ Вес должен быть больше 0 и меньше 100000',
-      errorPurity: '❌ Чистота должна быть от 0 до 100',
-      confirmBtn: '✅ Подтвердить',
-      cancelBtn: '❌ Отменить',
-      back: '🔙 Назад',
-      mainMenu: '🏠 Главное меню',
-      skipComment: 'Пропустить',
-      sendPhotoRequired: '📸 Пришлите фото отправки золота',
-      sendLocationRequired: '📍 Пришлите геолокацию отправки (обязательно)',
-      sendLocationBtn: '📍 Отправить мою геолокацию',
-      successMessage: '✅ Отправка золота успешно сохранена!\n\n',
-      locationSaved: 'Геолокация сохранена',
-      openMap: 'Открыть на карте',
-      saveError: '❌ Не удалось сохранить отправку',
-      sitesLoadError: '❌ Участки не загрузились из таблицы. Попробуйте позже.',
-      warehousesLoadError: '❌ Склады не загрузились из таблицы',
-      labelFrom: 'Откуда',
-      labelTo: 'Куда',
-      labelType: 'Тип',
-      labelWeight: 'Вес',
-      labelPurity: 'Чистота',
-      labelComment: 'Комментарий'
-    },
-    en: {
-      chooseFromSite: '📍 From site:',
-      chooseToSite: '📍 To warehouse:',
-      chooseGoldType: '🔸 Select gold type:',
-      enterWeight: '⚖️ Enter weight in grams:',
-      enterPurity: '💎 Enter purity (%):',
-      enterComment: '💬 Enter comment or "Skip":',
-      confirmationHeader: '📦 Shipment confirmation',
-      confirmQuestion: 'Confirm?',
-      operationCancelled: '❌ Shipment cancelled.',
-      errorInvalidSite: '❌ Select a site from the list.',
-      errorInvalidWarehouse: '❌ Select a warehouse from the list.',
-      errorInvalidGoldType: '❌ Select a gold type from the list.',
-      errorWeight: '❌ Weight must be greater than 0 and less than 100000',
-      errorPurity: '❌ Purity must be between 0 and 100',
-      confirmBtn: '✅ Confirm',
-      cancelBtn: '❌ Cancel',
-      back: '🔙 Back',
-      mainMenu: '🏠 Main Menu',
-      skipComment: 'Skip',
-      sendPhotoRequired: '📸 Please send shipment photo',
-      sendLocationRequired: '📍 Please send location of the shipment (required)',
-      sendLocationBtn: '📍 Send my location',
-      successMessage: '✅ Gold shipment successfully saved!\n\n',
-      locationSaved: 'Location saved',
-      openMap: 'Open on map',
-      saveError: '❌ Failed to save shipment',
-      sitesLoadError: '❌ Sites failed to load from table. Please try later.',
-      warehousesLoadError: '❌ Warehouses failed to load from table',
-      labelFrom: 'From',
-      labelTo: 'To',
-      labelType: 'Type',
-      labelWeight: 'Weight',
-      labelPurity: 'Purity',
-      labelComment: 'Comment'
-    }
-  };
-  return tr[lang] || tr.ru;
 }
 
 module.exports = {

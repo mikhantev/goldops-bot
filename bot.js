@@ -11,13 +11,17 @@ const send = require('./send');
 
 console.log('Бот инициализируется...');
 
+/**
+ * @typedef {'ru' | 'en'} Language
+ */
+
 // ==================== КОМАНДЫ И КНОПКИ ====================
 bot.start(async (ctx) => {
   try {
     await menu.showLanguageMenu(ctx);
   } catch (err) {
     console.error('START ERROR:', err);
-    await ctx.reply('❌ Ошибка запуска бота');
+    await ctx.reply('❌ Ошибка запуска бота / Bot start error');
   }
 });
 
@@ -35,6 +39,7 @@ bot.hears(['🔄 Смена языка', '🔄 Change Language'], async (ctx) =>
     await menu.changeLanguage(ctx);
   } catch (err) {
     console.error('CHANGE LANGUAGE ERROR:', err);
+    await ctx.reply('Ошибка смены языка / Language change error');
   }
 });
 
@@ -55,7 +60,7 @@ bot.hears(['📤 Отправка золота', '📤 Send Gold'], async (ctx) 
     await send.start(ctx);
   } catch (err) {
     console.error('SEND START ERROR:', err);
-    await ctx.reply('❌ Ошибка запуска отправки золота');
+    await ctx.reply('❌ Ошибка запуска отправки золота / Error starting send gold');
   }
 });
 
@@ -64,18 +69,20 @@ bot.on('text', async (ctx) => {
   const text = ctx.message.text.trim();
   console.log('TEXT RECEIVED =', text);
 
-  // Игнорируем кнопки меню и языка — они уже обработаны выше
-  if ([
+  // Игнорируем кнопки, которые уже обработаны выше
+  const ignoredButtons = [
     '🇷🇺 Русский', '🇬🇧 English',
     '🔄 Смена языка', '🔄 Change Language',
     '📥 Приём золота', '📥 Gold Intake',
     '📤 Отправка золота', '📤 Send Gold'
-  ].includes(text)) {
+  ];
+
+  if (ignoredButtons.includes(text)) {
     return;
   }
 
   try {
-    // Сначала пытаемся обработать в send (он сейчас активнее)
+    // Сначала пытаемся обработать в Send Gold (более приоритетный сейчас)
     await send.handleText(ctx);
     return;
   } catch (err) {
@@ -83,7 +90,7 @@ bot.on('text', async (ctx) => {
   }
 
   try {
-    // Если не сработало — пробуем intake
+    // Если не сработало — пробуем Intake
     await intake.handleText(ctx);
   } catch (err) {
     console.error('INTAKE TEXT HANDLER ERROR:', err);
@@ -107,19 +114,24 @@ bot.on('photo', async (ctx) => {
   }
 });
 
-// Новый обработчик для геолокации (ОБЯЗАТЕЛЬНО!)
 bot.on('location', async (ctx) => {
   console.log('LOCATION RECEIVED');
   try {
     await send.handleLocation(ctx);
   } catch (err) {
     console.error('LOCATION HANDLER ERROR:', err);
-    await ctx.reply('❌ Ошибка обработки геолокации');
+    await ctx.reply('❌ Ошибка обработки геолокации / Location processing error');
   }
 });
 
+// Глобальный обработчик ошибок
 bot.catch((err, ctx) => {
   console.error('GLOBAL BOT ERROR:', err);
+  try {
+    ctx.reply('❌ Произошла ошибка. Попробуйте ещё раз / An error occurred. Please try again.');
+  } catch (e) {
+    console.error('ERROR WHILE SENDING ERROR MESSAGE:', e);
+  }
 });
 
 // ==================== ЗАПУСК СЕРВЕРА ====================
