@@ -24,9 +24,9 @@ const menu = {
     setTimeout(() => showMainMenu(ctx, lang), 800);
   },
 
-  // Исправленная кнопка "Смена языка" — полный перезапуск выбора языка
+  // Кнопка "Смена языка" — работает точно как "Главное меню" (полный перезапуск бота)
   changeLanguage: (ctx) => {
-    showLanguageMenu(ctx);
+    ctx.reply('/start');   // ← Полный перезапуск бота через /start
   },
 
   showMainMenu: (ctx, lang = 'ru') => {
