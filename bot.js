@@ -11,6 +11,9 @@ const intake = require('./intake');
 bot.start((ctx) => menu.showLanguageMenu(ctx));
 bot.hears(['🇷🇺 Русский', '🇬🇧 English'], (ctx) => menu.handleLanguage(ctx));
 
+// ← Добавили отдельный обработчик для кнопки "Смена языка"
+bot.hears(['🔄 Смена языка', '🔄 Change Language'], (ctx) => menu.changeLanguage(ctx));
+
 bot.hears(['📥 Приём золота', '📥 Gold Intake'], (ctx) => intake.start(ctx));
 
 bot.on('text', (ctx) => intake.handleText(ctx));
