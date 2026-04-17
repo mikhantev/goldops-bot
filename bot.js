@@ -10,24 +10,19 @@ const intake = require('./intake');
 
 bot.start((ctx) => menu.showLanguageMenu(ctx));
 bot.hears(['🇷🇺 Русский', '🇬🇧 English'], (ctx) => menu.handleLanguage(ctx));
-
-// Отдельный обработчик для кнопки "Смена языка"
 bot.hears(['🔄 Смена языка', '🔄 Change Language'], (ctx) => menu.changeLanguage(ctx));
-
-// Приём золота
 bot.hears(['📥 Приём золота', '📥 Gold Intake'], (ctx) => intake.start(ctx));
 
-// Общий обработчик текста — с защитой от ложных срабатываний
+// Защищённый обработчик текста
 bot.on('text', (ctx) => {
   const text = ctx.message.text.trim();
-
-  // Игнорируем кнопки, которые уже обработаны выше
+  
+  // Игнорируем все кнопки меню и языка
   if (['🇷🇺 Русский', '🇬🇧 English', '🔄 Смена языка', '🔄 Change Language',
        '📥 Приём золота', '📥 Gold Intake'].includes(text)) {
     return;
   }
 
-  // Всё остальное идёт в intake (шаги внутри приёма золота)
   intake.handleText(ctx);
 });
 
