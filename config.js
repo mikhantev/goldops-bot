@@ -2,10 +2,7 @@ require('dotenv').config();
 
 module.exports = {
   BOT_TOKEN: process.env.BOT_TOKEN,
-  
-  // Здесь можно будет добавить другие настройки позже
-  DEFAULT_LANGUAGE: 'ru',
-  
-  // Для теста можно добавить твои данные
-  ADMIN_ID: 344577046
+  SPREADSHEET_ID: process.env.SPREADSHEET_ID,
+  GOOGLE_SERVICE_ACCOUNT_EMAIL: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  GOOGLE_PRIVATE_KEY: process.env.GOOGLE_PRIVATE_KEY
 };

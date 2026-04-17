@@ -10,6 +10,16 @@ async function getDoc() {
   console.log('SERVICE_ACCOUNT_EMAIL =', config.GOOGLE_SERVICE_ACCOUNT_EMAIL);
   console.log('PRIVATE_KEY_EXISTS =', !!config.GOOGLE_PRIVATE_KEY);
 
+  if (!config.SPREADSHEET_ID) {
+    throw new Error('SPREADSHEET_ID is missing');
+  }
+  if (!config.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_EMAIL is missing');
+  }
+  if (!config.GOOGLE_PRIVATE_KEY) {
+    throw new Error('GOOGLE_PRIVATE_KEY is missing');
+  }
+
   const doc = new GoogleSpreadsheet(config.SPREADSHEET_ID);
 
   await doc.useServiceAccountAuth({
@@ -27,7 +37,7 @@ async function getDoc() {
 async function getMiningSites() {
   const now = Date.now();
 
-  if (cache && (now - cacheTime < CACHE_TTL) && cache.mining) {
+  if (cache && now - cacheTime < CACHE_TTL && cache.mining) {
     console.log('MINING SITES FROM CACHE =', cache.mining);
     return cache.mining;
   }
@@ -43,13 +53,6 @@ async function getMiningSites() {
 
     const rows = await sheet.getRows();
     console.log('01_Sites rows count =', rows.length);
-
-    if (rows.length > 0) {
-      console.log('FIRST ROW RAW =', rows[0]._rawData);
-      console.log('FIRST ROW Site_ID =', rows[0].Site_ID);
-      console.log('FIRST ROW Site_Name =', rows[0].Site_Name);
-      console.log('FIRST ROW Status =', rows[0].Status);
-    }
 
     const mining = rows
       .filter(row => (row.Status || row.get('Status')) === 'Active')
@@ -75,7 +78,7 @@ async function getMiningSites() {
 async function getWarehouses() {
   const now = Date.now();
 
-  if (cache && (now - cacheTime < CACHE_TTL) && cache.warehouses) {
+  if (cache && now - cacheTime < CACHE_TTL && cache.warehouses) {
     console.log('WAREHOUSES FROM CACHE =', cache.warehouses);
     return cache.warehouses;
   }
