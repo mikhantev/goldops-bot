@@ -21,41 +21,45 @@ const menu = {
       ? '✅ Язык установлен на Русский.' 
       : '✅ Language set to English.');
 
-    // Прямой вызов меню без setTimeout, чтобы избежать зависаний
-    showMainMenu(ctx, lang);
+    setTimeout(() => showMainMenu(ctx, lang), 800);
+  },
+
+  // Кнопка "Смена языка" — полный перезапуск выбора языка
+  changeLanguage: (ctx) => {
+    showLanguageMenu(ctx);
+  },
+
+  showMainMenu: (ctx, lang = 'ru') => {
+    if (lang === 'ru') {
+      ctx.reply('👋 Главное меню GoldOps:', {
+        reply_markup: {
+          keyboard: [
+            ['📥 Приём золота'],
+            ['📤 Отправка золота'],
+            ['⛽ Заправка топлива'],
+            ['📊 Директорский бриф'],
+            ['🔄 Смена языка']
+          ],
+          resize_keyboard: true,
+          persistent: true
+        }
+      });
+    } else {
+      ctx.reply('👋 GoldOps Main Menu:', {
+        reply_markup: {
+          keyboard: [
+            ['📥 Gold Intake'],
+            ['📤 Send Gold'],
+            ['⛽ Fuel Refill'],
+            ['📊 Director Brief'],
+            ['🔄 Change Language']
+          ],
+          resize_keyboard: true,
+          persistent: true
+        }
+      });
+    }
   }
 };
-
-function showMainMenu(ctx, lang = 'ru') {
-  if (lang === 'ru') {
-    ctx.reply('👋 Главное меню GoldOps:', {
-      reply_markup: {
-        keyboard: [
-          ['📥 Приём золота'],
-          ['📤 Отправка золота'],
-          ['⛽ Заправка топлива'],
-          ['📊 Директорский бриф'],
-          ['🔄 Смена языка']
-        ],
-        resize_keyboard: true,
-        persistent: true
-      }
-    });
-  } else {
-    ctx.reply('👋 GoldOps Main Menu:', {
-      reply_markup: {
-        keyboard: [
-          ['📥 Gold Intake'],
-          ['📤 Send Gold'],
-          ['⛽ Fuel Refill'],
-          ['📊 Director Brief'],
-          ['🔄 Change Language']
-        ],
-        resize_keyboard: true,
-        persistent: true
-      }
-    });
-  }
-}
 
 module.exports = menu;
