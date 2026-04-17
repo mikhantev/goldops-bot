@@ -4,58 +4,64 @@ let userState = {};
 
 // ==================== ЗАПУСК ====================
 async function start(ctx) {
-  const userId = ctx.from.id;
-  const lang = ctx.session?.language || ctx.session?.lang || 'ru';
+  console.log('🚀 SEND FLOW STARTED');
 
-  const userData = await getUserData(userId);
-  const isDirector = userData.role === 'director';
+  try {
+    const userId = ctx.from.id;
+    const lang = ctx.session?.language || ctx.session?.lang || 'ru';
 
-  userState[userId] = {
-    step: 'select_from_site',
-    history: ['select_from_site'],
-    language: lang,
-    isDirector,
-    defaultSite: userData.defaultSite,
-    defaultSiteName: userData.defaultSiteName || userData.defaultSite || ''
-  };
+    const userData = await getUserData(userId);
+    const isDirector = userData.role === 'director';
 
-  const t = getTranslations(lang);
+    userState[userId] = {
+      step: 'select_from_site',
+      history: ['select_from_site'],
+      language: lang,
+      isDirector,
+      defaultSite: userData.defaultSite,
+      defaultSiteName: userData.defaultSiteName || userData.defaultSite || ''
+    };
 
-  // Для обычных сотрудников автоматически ставим default site
-  if (!isDirector && userData.defaultSite) {
-    userState[userId].fromSite = userData.defaultSite;
-    userState[userId].fromSiteName =
-      userData.defaultSiteName || userData.defaultSite;
+    const t = getTranslations(lang);
 
-    await proceedToToSite(ctx, userId);
-    return;
-  }
+    // Для обычных сотрудников автоматически ставим default site
+    if (!isDirector && userData.defaultSite) {
+      console.log('👤 OPERATOR MODE, DEFAULT SITE =', userData.defaultSite);
 
-  const miningSites = await sites.getMiningSites();
-  console.log('SEND > miningSites =', JSON.stringify(miningSites, null, 2));
+      userState[userId].fromSite = userData.defaultSite;
+      userState[userId].fromSiteName =
+        userData.defaultSiteName || userData.defaultSite;
 
-  if (!miningSites || miningSites.length === 0) {
-    await ctx.reply('❌ Участки не загрузились из таблицы');
-    return;
-  }
-
-  const keyboard = miningSites.map(site => [
-    { text: formatButton(site) }
-  ]);
-
-  keyboard.push([{ text: t.back }, { text: t.mainMenu }]);
-
-  await ctx.reply(t.chooseFromSite, {
-    reply_markup: {
-      keyboard,
-      resize_keyboard: true
+      await proceedToToSite(ctx, userId);
+      return;
     }
-  });
+
+   const miningSites = await sites.getMiningSites();
+console.log('SEND > miningSites =', JSON.stringify(miningSites, null, 2));
+
+if (!miningSites || miningSites.length === 0) {
+  await ctx.reply('❌ Участки не загрузились из таблицы');
+  return;
+}
+
+const keyboard = miningSites.map(site => [
+  { text: `${site.name || site.code} (${site.code || 'NO-CODE'})` }
+]);
+
+    await ctx.reply(t.chooseFromSite, {
+      reply_markup: {
+        keyboard,
+        resize_keyboard: true
+      }
+    });
+  } catch (error) {
+    console.error('❌ SEND FLOW ERROR:', error);
+    await ctx.reply('❌ Ошибка при запуске отправки золота');
+  }
 }
 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ====================
 async function getUserData(userId) {
-  // Пока заглушка
   const isDirector =
     userId.toString() === '123456789' || userId.toString() === '344577046';
 
@@ -75,43 +81,41 @@ function formatButton(item) {
 function findByText(list, text) {
   return list.find(item => {
     const formatted = formatButton(item);
-    return (
-      text === item.code ||
-      text === item.name ||
-      text === formatted
-    );
+    return text === item.code || text === item.name || text === formatted;
   });
 }
 
 async function proceedToToSite(ctx, userId) {
-  const state = userState[userId];
-  const t = getTranslations(state.language);
+  try {
+    const state = userState[userId];
+    const t = getTranslations(state.language);
 
-  const warehouses = await sites.getWarehouses();
-  console.log('SEND > warehouses =', JSON.stringify(warehouses, null, 2));
+    const warehouses = await sites.getWarehouses();
+    console.log('📦 SEND > warehouses =', JSON.stringify(warehouses, null, 2));
 
-  if (!warehouses || warehouses.length === 0) {
-    await ctx.reply('❌ Склады не загрузились из таблицы');
-    return;
-  }
-
-  const keyboard = warehouses.map(w => [
-    { text: formatButton(w) }
-  ]);
-
-  keyboard.push([{ text: t.back }, { text: t.mainMenu }]);
-
-  await ctx.reply(t.chooseToSite, {
-    reply_markup: {
-      keyboard,
-      resize_keyboard: true
+    if (!warehouses || warehouses.length === 0) {
+      await ctx.reply('❌ Склады не загрузились из таблицы');
+      return;
     }
-  });
 
-  state.step = 'select_to_site';
+    const keyboard = warehouses.map(w => [{ text: formatButton(w) }]);
+    keyboard.push([{ text: t.back }, { text: t.mainMenu }]);
 
-  if (state.history[state.history.length - 1] !== 'select_to_site') {
-    state.history.push('select_to_site');
+    await ctx.reply(t.chooseToSite, {
+      reply_markup: {
+        keyboard,
+        resize_keyboard: true
+      }
+    });
+
+    state.step = 'select_to_site';
+
+    if (state.history[state.history.length - 1] !== 'select_to_site') {
+      state.history.push('select_to_site');
+    }
+  } catch (error) {
+    console.error('❌ proceedToToSite ERROR:', error);
+    await ctx.reply('❌ Ошибка при загрузке складов');
   }
 }
 
@@ -130,153 +134,161 @@ function getGoldTypeKeyboard(t) {
 
 // ==================== ОБРАБОТКА ====================
 async function handleText(ctx) {
-  const userId = ctx.from.id;
-  const text = ctx.message.text.trim();
-  const state = userState[userId];
+  try {
+    const userId = ctx.from.id;
+    const text = ctx.message.text.trim();
+    const state = userState[userId];
 
-  if (!state) {
-    await ctx.reply('Начните заново через меню.');
-    return;
-  }
+    console.log('✍️ SEND TEXT INPUT =', text);
+    console.log('🧭 SEND STATE =', state?.step);
 
-  const t = getTranslations(state.language);
-
-  if (text === t.mainMenu) {
-    const lang = state.language || 'ru';
-    delete userState[userId];
-    return require('./menu').showMainMenu(ctx, lang);
-  }
-
-  if (text === t.back) {
-    return goBack(ctx, userId);
-  }
-
-  // ===== FROM SITE =====
-  if (state.step === 'select_from_site') {
-    const miningSites = await sites.getMiningSites();
-    const site = findByText(miningSites, text);
-
-    if (!site) {
-      return ctx.reply(t.errorInvalidSite);
+    if (!state) {
+      await ctx.reply('Начните заново через меню.');
+      return;
     }
 
-    state.fromSite = site.code;
-    state.fromSiteName = site.name || site.code;
+    const t = getTranslations(state.language);
 
-    return proceedToToSite(ctx, userId);
-  }
-
-  // ===== TO SITE =====
-  if (state.step === 'select_to_site') {
-    const warehouses = await sites.getWarehouses();
-    const wh = findByText(warehouses, text);
-
-    if (!wh) {
-      return ctx.reply(t.errorInvalidWarehouse);
-    }
-
-    state.toSite = wh.code;
-    state.toSiteName = wh.name || wh.code;
-
-    state.step = 'select_gold_type';
-    if (state.history[state.history.length - 1] !== 'select_gold_type') {
-      state.history.push('select_gold_type');
-    }
-
-    return ctx.reply(t.chooseGoldType, getGoldTypeKeyboard(t));
-  }
-
-  // ===== GOLD TYPE =====
-  if (state.step === 'select_gold_type') {
-    if (!['Raw Gold', 'Concentrate', 'Dore'].includes(text)) {
-      return ctx.reply(t.errorInvalidGoldType);
-    }
-
-    state.goldType = text;
-    state.step = 'enter_weight';
-
-    if (state.history[state.history.length - 1] !== 'enter_weight') {
-      state.history.push('enter_weight');
-    }
-
-    return ctx.reply(t.enterWeight);
-  }
-
-  // ===== WEIGHT =====
-  if (state.step === 'enter_weight') {
-    const weight = parseFloat(text.replace(',', '.'));
-
-    if (isNaN(weight) || weight <= 0 || weight > 100000) {
-      return ctx.reply(t.errorWeight);
-    }
-
-    state.weight = weight;
-    state.step = 'enter_purity';
-
-    if (state.history[state.history.length - 1] !== 'enter_purity') {
-      state.history.push('enter_purity');
-    }
-
-    return ctx.reply(t.enterPurity);
-  }
-
-  // ===== PURITY =====
-  if (state.step === 'enter_purity') {
-    const purity = parseFloat(text.replace(',', '.'));
-
-    if (isNaN(purity) || purity < 0 || purity > 100) {
-      return ctx.reply(t.errorPurity);
-    }
-
-    state.purity = purity;
-    state.step = 'enter_comment';
-
-    if (state.history[state.history.length - 1] !== 'enter_comment') {
-      state.history.push('enter_comment');
-    }
-
-    return ctx.reply(t.enterComment);
-  }
-
-  // ===== COMMENT =====
-  if (state.step === 'enter_comment') {
-    state.comment =
-      text.toLowerCase() === 'skip' || text === t.skipComment ? '' : text;
-
-    state.step = 'confirm';
-
-    if (state.history[state.history.length - 1] !== 'confirm') {
-      state.history.push('confirm');
-    }
-
-    return showConfirmation(ctx, state);
-  }
-
-  // ===== CONFIRM =====
-  if (state.step === 'confirm') {
-    if (text === t.confirmBtn) {
-      state.step = 'send_photo';
-
-      if (state.history[state.history.length - 1] !== 'send_photo') {
-        state.history.push('send_photo');
-      }
-
-      return ctx.reply(t.sendPhotoRequired);
-    }
-
-    if (text === t.cancelBtn) {
+    if (text === t.mainMenu) {
       const lang = state.language || 'ru';
       delete userState[userId];
-      await ctx.reply(t.operationCancelled);
       return require('./menu').showMainMenu(ctx, lang);
     }
 
-    return ctx.reply(t.confirmChooseAction);
-  }
+    if (text === t.back) {
+      return goBack(ctx, userId);
+    }
 
-  // ===== WAITING PHOTO =====
-  if (state.step === 'send_photo') {
-    return ctx.reply(t.waitingPhoto);
+    // ===== FROM SITE =====
+    if (state.step === 'select_from_site') {
+      const miningSites = await sites.getMiningSites();
+      const site = findByText(miningSites, text);
+
+      if (!site) {
+        return ctx.reply(t.errorInvalidSite);
+      }
+
+      state.fromSite = site.code;
+      state.fromSiteName = site.name || site.code;
+
+      return proceedToToSite(ctx, userId);
+    }
+
+    // ===== TO SITE =====
+    if (state.step === 'select_to_site') {
+      const warehouses = await sites.getWarehouses();
+      const wh = findByText(warehouses, text);
+
+      if (!wh) {
+        return ctx.reply(t.errorInvalidWarehouse);
+      }
+
+      state.toSite = wh.code;
+      state.toSiteName = wh.name || wh.code;
+
+      state.step = 'select_gold_type';
+      if (state.history[state.history.length - 1] !== 'select_gold_type') {
+        state.history.push('select_gold_type');
+      }
+
+      return ctx.reply(t.chooseGoldType, getGoldTypeKeyboard(t));
+    }
+
+    // ===== GOLD TYPE =====
+    if (state.step === 'select_gold_type') {
+      if (!['Raw Gold', 'Concentrate', 'Dore'].includes(text)) {
+        return ctx.reply(t.errorInvalidGoldType);
+      }
+
+      state.goldType = text;
+      state.step = 'enter_weight';
+
+      if (state.history[state.history.length - 1] !== 'enter_weight') {
+        state.history.push('enter_weight');
+      }
+
+      return ctx.reply(t.enterWeight);
+    }
+
+    // ===== WEIGHT =====
+    if (state.step === 'enter_weight') {
+      const weight = parseFloat(text.replace(',', '.'));
+
+      if (isNaN(weight) || weight <= 0 || weight > 100000) {
+        return ctx.reply(t.errorWeight);
+      }
+
+      state.weight = weight;
+      state.step = 'enter_purity';
+
+      if (state.history[state.history.length - 1] !== 'enter_purity') {
+        state.history.push('enter_purity');
+      }
+
+      return ctx.reply(t.enterPurity);
+    }
+
+    // ===== PURITY =====
+    if (state.step === 'enter_purity') {
+      const purity = parseFloat(text.replace(',', '.'));
+
+      if (isNaN(purity) || purity < 0 || purity > 100) {
+        return ctx.reply(t.errorPurity);
+      }
+
+      state.purity = purity;
+      state.step = 'enter_comment';
+
+      if (state.history[state.history.length - 1] !== 'enter_comment') {
+        state.history.push('enter_comment');
+      }
+
+      return ctx.reply(t.enterComment);
+    }
+
+    // ===== COMMENT =====
+    if (state.step === 'enter_comment') {
+      state.comment =
+        text.toLowerCase() === 'skip' || text === t.skipComment ? '' : text;
+
+      state.step = 'confirm';
+
+      if (state.history[state.history.length - 1] !== 'confirm') {
+        state.history.push('confirm');
+      }
+
+      return showConfirmation(ctx, state);
+    }
+
+    // ===== CONFIRM =====
+    if (state.step === 'confirm') {
+      if (text === t.confirmBtn) {
+        state.step = 'send_photo';
+
+        if (state.history[state.history.length - 1] !== 'send_photo') {
+          state.history.push('send_photo');
+        }
+
+        return ctx.reply(t.sendPhotoRequired);
+      }
+
+      if (text === t.cancelBtn) {
+        const lang = state.language || 'ru';
+        delete userState[userId];
+        await ctx.reply(t.operationCancelled);
+        return require('./menu').showMainMenu(ctx, lang);
+      }
+
+      return ctx.reply(t.confirmChooseAction);
+    }
+
+    // ===== WAITING PHOTO =====
+    if (state.step === 'send_photo') {
+      return ctx.reply(t.waitingPhoto);
+    }
+  } catch (error) {
+    console.error('❌ SEND handleText ERROR:', error);
+    await ctx.reply('❌ Ошибка обработки отправки');
   }
 }
 
@@ -308,92 +320,104 @@ async function showConfirmation(ctx, s) {
 
 // ==================== ФОТО + ЗАПИСЬ ====================
 async function handlePhoto(ctx) {
-  const userId = ctx.from.id;
-  const state = userState[userId];
+  try {
+    const userId = ctx.from.id;
+    const state = userState[userId];
 
-  if (!state || state.step !== 'send_photo') {
-    return;
+    console.log('📸 SEND PHOTO RECEIVED, STATE =', state?.step);
+
+    if (!state || state.step !== 'send_photo') {
+      return;
+    }
+
+    const photo = ctx.message.photo?.[ctx.message.photo.length - 1];
+    if (!photo) {
+      return ctx.reply('❌ Фото не получено');
+    }
+
+    const fileId = photo.file_id;
+    const shipmentId = `SHP-${Date.now()}`;
+
+    const saved = await sites.addGoldShipment({
+      shipmentId,
+      createdAt: new Date().toISOString(),
+      userId,
+      fromSiteId: state.fromSite,
+      fromSiteName: state.fromSiteName,
+      toWarehouseId: state.toSite,
+      toWarehouseName: state.toSiteName,
+      goldType: state.goldType,
+      weight: state.weight,
+      purity: state.purity,
+      comment: state.comment,
+      photoFileId: fileId,
+      status: 'CREATED'
+    });
+
+    if (!saved) {
+      await ctx.reply('❌ Не удалось записать отправку в таблицу');
+      return;
+    }
+
+    await ctx.reply(
+      `${state.language === 'ru' ? '✅ Отправка сохранена' : '✅ Shipment saved'}\nID: ${shipmentId}`
+    );
+
+    const lang = state.language || 'ru';
+    delete userState[userId];
+
+    return require('./menu').showMainMenu(ctx, lang);
+  } catch (error) {
+    console.error('❌ SEND handlePhoto ERROR:', error);
+    await ctx.reply('❌ Ошибка при сохранении фото');
   }
-
-  const photo = ctx.message.photo?.[ctx.message.photo.length - 1];
-  if (!photo) {
-    return ctx.reply('❌ Фото не получено');
-  }
-
-  const fileId = photo.file_id;
-  const shipmentId = `SHP-${Date.now()}`;
-
-  const saved = await sites.addGoldShipment({
-    shipmentId,
-    createdAt: new Date().toISOString(),
-    userId,
-    fromSiteId: state.fromSite,
-    fromSiteName: state.fromSiteName,
-    toWarehouseId: state.toSite,
-    toWarehouseName: state.toSiteName,
-    goldType: state.goldType,
-    weight: state.weight,
-    purity: state.purity,
-    comment: state.comment,
-    photoFileId: fileId,
-    status: 'CREATED'
-  });
-
-  if (!saved) {
-    await ctx.reply('❌ Не удалось записать отправку в таблицу');
-    return;
-  }
-
-  await ctx.reply(
-    `${state.language === 'ru' ? '✅ Отправка сохранена' : '✅ Shipment saved'}\nID: ${shipmentId}`
-  );
-
-  const lang = state.language || 'ru';
-  delete userState[userId];
-
-  return require('./menu').showMainMenu(ctx, lang);
 }
 
 // ==================== НАЗАД ====================
 async function goBack(ctx, userId) {
-  const state = userState[userId];
+  try {
+    const state = userState[userId];
 
-  if (!state || state.history.length <= 1) {
-    delete userState[userId];
-    return require('./menu').showMainMenu(ctx, 'ru');
-  }
+    if (!state || state.history.length <= 1) {
+      delete userState[userId];
+      return require('./menu').showMainMenu(ctx, 'ru');
+    }
 
-  state.history.pop();
-  state.step = state.history[state.history.length - 1];
+    state.history.pop();
+    state.step = state.history[state.history.length - 1];
 
-  const t = getTranslations(state.language);
+    const t = getTranslations(state.language);
 
-  if (state.step === 'select_from_site') {
-    return start(ctx);
-  }
+    if (state.step === 'select_from_site') {
+      return start(ctx);
+    }
 
-  if (state.step === 'select_to_site') {
-    return proceedToToSite(ctx, userId);
-  }
+    if (state.step === 'select_to_site') {
+      return proceedToToSite(ctx, userId);
+    }
 
-  if (state.step === 'select_gold_type') {
-    return ctx.reply(t.chooseGoldType, getGoldTypeKeyboard(t));
-  }
+    if (state.step === 'select_gold_type') {
+      return ctx.reply(t.chooseGoldType, getGoldTypeKeyboard(t));
+    }
 
-  if (state.step === 'enter_weight') {
-    return ctx.reply(t.enterWeight);
-  }
+    if (state.step === 'enter_weight') {
+      return ctx.reply(t.enterWeight);
+    }
 
-  if (state.step === 'enter_purity') {
-    return ctx.reply(t.enterPurity);
-  }
+    if (state.step === 'enter_purity') {
+      return ctx.reply(t.enterPurity);
+    }
 
-  if (state.step === 'enter_comment') {
-    return ctx.reply(t.enterComment);
-  }
+    if (state.step === 'enter_comment') {
+      return ctx.reply(t.enterComment);
+    }
 
-  if (state.step === 'confirm') {
-    return showConfirmation(ctx, state);
+    if (state.step === 'confirm') {
+      return showConfirmation(ctx, state);
+    }
+  } catch (error) {
+    console.error('❌ SEND goBack ERROR:', error);
+    await ctx.reply('❌ Ошибка возврата назад');
   }
 }
 

@@ -95,12 +95,22 @@ async function getMiningSites() {
     const rows = await sheet.getRows();
     console.log('01_Sites rows count =', rows.length);
 
-    const mining = rows
-      .map(row => ({
-        code: row.Site_ID || row.SiteCode || row.get('Site_ID'),
-        name: row.Site_Name || row.SiteName || row.get('Site_Name')
-      }))
-      .filter(x => x.code || x.name);
+    if (rows.length > 0) {
+      console.log('FIRST SITE ROW RAW =', rows[0]._rawData);
+      console.log('FIRST SITE ROW Site_ID =', rows[0].Site_ID);
+      console.log('FIRST SITE ROW Site_Name =', rows[0].Site_Name);
+      console.log('FIRST SITE ROW Status =', rows[0].Status);
+    }
+
+    const mining = rows.map((row, i) => {
+      const code = String(row.Site_ID || row.get('Site_ID') || '').trim();
+      const name = String(row.Site_Name || row.get('Site_Name') || '').trim();
+      const status = String(row.Status || row.get('Status') || '').trim();
+
+      console.log(`ROW ${i}:`, { code, name, status });
+
+      return { code, name, status };
+    }).filter(x => x.code || x.name);
 
     console.log('MINING SITES LOADED =', mining);
 
