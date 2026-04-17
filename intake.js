@@ -20,7 +20,8 @@ function start(ctx) {
       keyboard: [
         [{ text: "SITE-001" }, { text: "SITE-002" }],
         [{ text: "SITE-003" }],
-        [{ text: t.back }]
+        [{ text: t.back }],
+        [{ text: "🏠 Главное меню" }]
       ],
       resize_keyboard: true
     }
@@ -40,6 +41,12 @@ function handleText(ctx) {
 
   const t = getTranslations(state.language);
 
+  if (text === "🏠 Главное меню") {
+    delete userState[userId];
+    require('./menu').showMainMenu(ctx, state.language);
+    return;
+  }
+
   if (text === t.back) {
     goBack(ctx, userId);
     return;
@@ -51,7 +58,10 @@ function handleText(ctx) {
       state.step = 'select_area';
       state.history.push('select_area');
       ctx.reply(t.chooseArea, { 
-        reply_markup: { keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}]], resize_keyboard: true }
+        reply_markup: { 
+          keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], 
+          resize_keyboard: true 
+        }
       });
     }
   } 
@@ -60,7 +70,10 @@ function handleText(ctx) {
     state.step = 'select_warehouse';
     state.history.push('select_warehouse');
     ctx.reply(t.chooseWarehouse, { 
-      reply_markup: { keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}]], resize_keyboard: true }
+      reply_markup: { 
+        keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], 
+        resize_keyboard: true 
+      }
     });
   } 
   else if (state.step === 'select_warehouse') {
@@ -68,7 +81,10 @@ function handleText(ctx) {
     state.step = 'select_gold_type';
     state.history.push('select_gold_type');
     ctx.reply(t.chooseGoldType, { 
-      reply_markup: { keyboard: [[{text:"Raw Gold"}], [{text:"Concentrate"}], [{text:"Dore"}], [{text:t.back}]], resize_keyboard: true }
+      reply_markup: { 
+        keyboard: [[{text:"Raw Gold"}], [{text:"Concentrate"}], [{text:"Dore"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], 
+        resize_keyboard: true 
+      }
     });
   } 
   else if (state.step === 'select_gold_type') {
@@ -138,7 +154,8 @@ function showConfirmation(ctx, state) {
       keyboard: [
         [{ text: t.confirmBtn }],
         [{ text: t.cancelBtn }],
-        [{ text: t.back }]
+        [{ text: t.back }],
+        [{ text: "🏠 Главное меню" }]
       ],
       resize_keyboard: true
     }
@@ -182,11 +199,11 @@ function goBack(ctx, userId) {
 
   if (state.step === 'select_site') start(ctx);
   else if (state.step === 'select_area') {
-    ctx.reply(t.chooseArea, { reply_markup: { keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}]], resize_keyboard: true }});
+    ctx.reply(t.chooseArea, { reply_markup: { keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], resize_keyboard: true }});
   } else if (state.step === 'select_warehouse') {
-    ctx.reply(t.chooseWarehouse, { reply_markup: { keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}]], resize_keyboard: true }});
+    ctx.reply(t.chooseWarehouse, { reply_markup: { keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], resize_keyboard: true }});
   } else if (state.step === 'select_gold_type') {
-    ctx.reply(t.chooseGoldType, { reply_markup: { keyboard: [[{text:"Raw Gold"}], [{text:"Concentrate"}], [{text:"Dore"}], [{text:t.back}]], resize_keyboard: true }});
+    ctx.reply(t.chooseGoldType, { reply_markup: { keyboard: [[{text:"Raw Gold"}], [{text:"Concentrate"}], [{text:"Dore"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], resize_keyboard: true }});
   } else if (state.step === 'enter_weight') {
     ctx.reply(t.enterWeight);
   } else if (state.step === 'enter_purity') {
