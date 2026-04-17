@@ -1,5 +1,8 @@
 const sites = require('./sites');
 
+/** Глобальное хранилище языка пользователя */
+const userLanguage = {};
+
 /**
  * @typedef {Object} UserState
  * @property {string} step
@@ -24,45 +27,7 @@ const sites = require('./sites');
 /** @type {Object.<number, UserState>} */
 let userState = {};
 
-/**
- * @typedef {Object} Translations
- * @property {string} chooseFromSite
- * @property {string} chooseToSite
- * @property {string} chooseGoldType
- * @property {string} enterWeight
- * @property {string} enterPurity
- * @property {string} enterComment
- * @property {string} confirmationHeader
- * @property {string} confirmQuestion
- * @property {string} operationCancelled
- * @property {string} errorInvalidSite
- * @property {string} errorInvalidWarehouse
- * @property {string} errorInvalidGoldType
- * @property {string} errorWeight
- * @property {string} errorPurity
- * @property {string} confirmBtn
- * @property {string} cancelBtn
- * @property {string} back
- * @property {string} mainMenu
- * @property {string} skipComment
- * @property {string} sendPhotoRequired
- * @property {string} sendLocationRequired
- * @property {string} sendLocationBtn
- * @property {string} successMessage
- * @property {string} locationSaved
- * @property {string} openMap
- * @property {string} saveError
- * @property {string} sitesLoadError
- * @property {string} warehousesLoadError
- * @property {string} labelFrom
- * @property {string} labelTo
- * @property {string} labelType
- * @property {string} labelWeight
- * @property {string} labelPurity
- * @property {string} labelComment
- */
-
-/** @type {Object.<'ru'|'en', Translations>} */
+/** @type {Object.<'ru'|'en', Object>} */
 const translations = {
   ru: {
     chooseFromSite: '📍 Откуда отправляем:',
@@ -149,7 +114,9 @@ async function start(ctx) {
 
   try {
     const userId = ctx.from.id;
-    let lang = ctx.session?.language || 'ru';
+
+    // Надёжное определение языка
+    let lang = userLanguage[userId] || ctx.session?.language || 'ru';
     if (lang !== 'ru' && lang !== 'en') lang = 'ru';
 
     const userData = await getUserData(userId);
@@ -166,8 +133,9 @@ async function start(ctx) {
 
     const t = getTranslations(lang);
 
+    console.log(`[SEND] User ${userId} started with language: ${lang}`);
+
     if (!isDirector && userData.defaultSite) {
-      console.log(`👤 OPERATOR MODE (${lang}), DEFAULT SITE =`, userData.defaultSite);
       userState[userId].fromSite = userData.defaultSite;
       userState[userId].fromSiteName = userData.defaultSiteName || userData.defaultSite;
       await proceedToToSite(ctx, userId);
@@ -248,7 +216,6 @@ async function handleText(ctx) {
       return goBack(ctx, userId);
     }
 
-    // FROM SITE
     if (state.step === 'select_from_site') {
       const miningSites = await sites.getMiningSites();
       const site = miningSites.find(s => 
@@ -261,7 +228,6 @@ async function handleText(ctx) {
       return proceedToToSite(ctx, userId);
     }
 
-    // TO WAREHOUSE
     if (state.step === 'select_to_site') {
       const warehouses = await sites.getWarehouses();
       const wh = warehouses.find(w => 
@@ -287,7 +253,6 @@ async function handleText(ctx) {
       });
     }
 
-    // GOLD TYPE
     if (state.step === 'select_gold_type') {
       if (!['Raw Gold', 'Concentrate', 'Dore'].includes(text)) return ctx.reply(t.errorInvalidGoldType);
       state.goldType = text;
@@ -339,8 +304,6 @@ async function handleText(ctx) {
   }
 }
 
-// showConfirmation, handlePhoto, handleLocation, goBack остаются без изменений (они уже используют t.*)
-
 async function showConfirmation(ctx, s) {
   const t = getTranslations(s.language);
   const message = 
@@ -365,8 +328,7 @@ async function showConfirmation(ctx, s) {
   });
 }
 
-// handlePhoto, handleLocation, goBack — оставляем как в предыдущей версии (они уже хорошие)
-
+// ==================== PHOTO + LOCATION ====================
 async function handlePhoto(ctx) {
   try {
     const userId = ctx.from.id;
@@ -429,7 +391,7 @@ async function handleLocation(ctx) {
       photoFileId: state.photoFileId,
       latitude: state.latitude,
       longitude: state.longitude,
-      googleMapsLink,
+      googleMapsLink: googleMapsLink,
       status: 'CREATED'
     });
 
