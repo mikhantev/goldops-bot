@@ -96,7 +96,6 @@ async function getMiningSites() {
     console.log('01_Sites rows count =', rows.length);
 
     const mining = rows
-      .filter(row => (row.Status || row.get('Status')) === 'Active')
       .map(row => ({
         code: row.Site_ID || row.SiteCode || row.get('Site_ID'),
         name: row.Site_Name || row.SiteName || row.get('Site_Name')
