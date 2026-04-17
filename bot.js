@@ -11,12 +11,26 @@ const intake = require('./intake');
 bot.start((ctx) => menu.showLanguageMenu(ctx));
 bot.hears(['🇷🇺 Русский', '🇬🇧 English'], (ctx) => menu.handleLanguage(ctx));
 
-// ← Добавили отдельный обработчик для кнопки "Смена языка"
+// Отдельный обработчик для кнопки "Смена языка"
 bot.hears(['🔄 Смена языка', '🔄 Change Language'], (ctx) => menu.changeLanguage(ctx));
 
+// Приём золота
 bot.hears(['📥 Приём золота', '📥 Gold Intake'], (ctx) => intake.start(ctx));
 
-bot.on('text', (ctx) => intake.handleText(ctx));
+// Общий обработчик текста — с защитой от ложных срабатываний
+bot.on('text', (ctx) => {
+  const text = ctx.message.text.trim();
+
+  // Игнорируем кнопки, которые уже обработаны выше
+  if (['🇷🇺 Русский', '🇬🇧 English', '🔄 Смена языка', '🔄 Change Language',
+       '📥 Приём золота', '📥 Gold Intake'].includes(text)) {
+    return;
+  }
+
+  // Всё остальное идёт в intake (шаги внутри приёма золота)
+  intake.handleText(ctx);
+});
+
 bot.on('photo', (ctx) => intake.handlePhoto(ctx));
 
 app.use(express.json());
