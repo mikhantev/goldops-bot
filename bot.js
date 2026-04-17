@@ -36,23 +36,27 @@ bot.hears(['🔄 Смена языка', '🔄 Change Language'], async (ctx) =>
 
 bot.hears(['📥 Приём золота', '📥 Gold Intake'], async (ctx) => {
   try {
+    console.log('🟡 INTAKE BUTTON TRIGGERED');
     await intake.start(ctx);
   } catch (err) {
     console.error('INTAKE START ERROR:', err);
   }
 });
 
-bot.hears(['📤 Отправка золота', '📤 Send Gold'], async (ctx) => {
+bot.hears(/Отправка золота|Send Gold/, async (ctx) => {
   try {
+    console.log('🟢 BUTTON SEND TRIGGERED');
     await send.start(ctx);
   } catch (err) {
     console.error('SEND START ERROR:', err);
+    await ctx.reply('❌ Ошибка запуска отправки золота');
   }
 });
 
 bot.on('text', async (ctx) => {
   try {
     const text = ctx.message.text.trim();
+    console.log('TEXT RECEIVED =', text);
 
     if ([
       '🇷🇺 Русский', '🇬🇧 English',
@@ -63,7 +67,20 @@ bot.on('text', async (ctx) => {
       return;
     }
 
-    await intake.handleText(ctx);
+    // Сначала пробуем send flow
+    try {
+      await send.handleText(ctx);
+      return;
+    } catch (err) {
+      console.error('SEND TEXT HANDLER ERROR:', err);
+    }
+
+    // Потом intake flow
+    try {
+      await intake.handleText(ctx);
+    } catch (err) {
+      console.error('INTAKE TEXT HANDLER ERROR:', err);
+    }
   } catch (err) {
     console.error('TEXT HANDLER ERROR:', err);
   }
@@ -71,7 +88,22 @@ bot.on('text', async (ctx) => {
 
 bot.on('photo', async (ctx) => {
   try {
-    await intake.handlePhoto(ctx);
+    console.log('PHOTO RECEIVED');
+
+    // Сначала пробуем send flow
+    try {
+      await send.handlePhoto(ctx);
+      return;
+    } catch (err) {
+      console.error('SEND PHOTO HANDLER ERROR:', err);
+    }
+
+    // Потом intake flow
+    try {
+      await intake.handlePhoto(ctx);
+    } catch (err) {
+      console.error('INTAKE PHOTO HANDLER ERROR:', err);
+    }
   } catch (err) {
     console.error('PHOTO HANDLER ERROR:', err);
   }
