@@ -35,25 +35,25 @@ function handleText(ctx) {
   const state = userState[userId];
 
   if (!state) {
-    start(ctx);
+    ctx.reply('/start');
     return;
   }
 
   const t = getTranslations(state.language);
 
-  // Кнопка "Главное меню" — возвращаем в главное меню
+  // Кнопка "Главное меню" — полный перезапуск бота через /start
   if (text === "🏠 Главное меню") {
     delete userState[userId];
-    require('./menu').showMainMenu(ctx, state.language);
+    ctx.reply('/start');   // ← Полный перезапуск бота
     return;
   }
 
-  // Кнопка "Назад"
   if (text === t.back) {
     goBack(ctx, userId);
     return;
   }
 
+  // ... (все остальные шаги как в твоём коде)
   if (state.step === 'select_site') {
     if (['SITE-001', 'SITE-002', 'SITE-003'].includes(text)) {
       state.site = text;
@@ -132,7 +132,7 @@ function handleText(ctx) {
     } else if (text === t.cancelBtn) {
       ctx.reply(t.operationCancelled);
       delete userState[userId];
-      require('./menu').showMainMenu(ctx, state.language);
+      ctx.reply('/start');   // ← полный перезапуск
     }
   }
 }
@@ -180,7 +180,7 @@ function handlePhoto(ctx) {
 
     setTimeout(() => {
       delete userState[userId];
-      require('./menu').showMainMenu(ctx, state.language);
+      ctx.reply('/start');   // ← полный перезапуск бота
     }, 1500);
   }
 }
@@ -190,7 +190,7 @@ function goBack(ctx, userId) {
   const state = userState[userId];
   if (!state || state.history.length <= 1) {
     delete userState[userId];
-    require('./menu').showMainMenu(ctx, state ? state.language : 'ru');
+    ctx.reply('/start');   // ← полный перезапуск
     return;
   }
 
