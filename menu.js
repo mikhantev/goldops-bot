@@ -21,23 +21,41 @@ const menu = {
       ? '✅ Язык установлен на Русский.' 
       : '✅ Language set to English.');
 
-    // Самый простой и надёжный способ открыть меню
-    setTimeout(() => {
-      ctx.reply('👋 Главное меню GoldOps:', {
-        reply_markup: {
-          keyboard: [
-            ['📥 Приём золота'],
-            ['📤 Отправка золота'],
-            ['⛽ Заправка топлива'],
-            ['📊 Директорский бриф'],
-            ['🔄 Смена языка']
-          ],
-          resize_keyboard: true,
-          persistent: true
-        }
-      });
-    }, 800);
+    // Прямой вызов меню без setTimeout, чтобы избежать зависаний
+    showMainMenu(ctx, lang);
   }
 };
+
+function showMainMenu(ctx, lang = 'ru') {
+  if (lang === 'ru') {
+    ctx.reply('👋 Главное меню GoldOps:', {
+      reply_markup: {
+        keyboard: [
+          ['📥 Приём золота'],
+          ['📤 Отправка золота'],
+          ['⛽ Заправка топлива'],
+          ['📊 Директорский бриф'],
+          ['🔄 Смена языка']
+        ],
+        resize_keyboard: true,
+        persistent: true
+      }
+    });
+  } else {
+    ctx.reply('👋 GoldOps Main Menu:', {
+      reply_markup: {
+        keyboard: [
+          ['📥 Gold Intake'],
+          ['📤 Send Gold'],
+          ['⛽ Fuel Refill'],
+          ['📊 Director Brief'],
+          ['🔄 Change Language']
+        ],
+        resize_keyboard: true,
+        persistent: true
+      }
+    });
+  }
+}
 
 module.exports = menu;
