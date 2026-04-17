@@ -7,6 +7,7 @@ function start(ctx) {
   let language = 'ru';
   if (ctx.message.text === '📥 Gold Intake') language = 'en';
 
+  // Полный сброс состояния при старте
   userState[userId] = { 
     step: 'select_site',
     history: ['select_site'],
@@ -41,12 +42,14 @@ function handleText(ctx) {
 
   const t = getTranslations(state.language);
 
+  // Кнопка "Главное меню" — мгновенный возврат
   if (text === "🏠 Главное меню") {
     delete userState[userId];
     require('./menu').showMainMenu(ctx, state.language);
     return;
   }
 
+  // Кнопка "Назад"
   if (text === t.back) {
     goBack(ctx, userId);
     return;
@@ -135,7 +138,7 @@ function handleText(ctx) {
   }
 }
 
-// ==================== ПОДТВЕРЖДЕНИЕ ====================
+// ==================== ПОДТВЕРЖДЕНИЕ И ФОТО ====================
 function showConfirmation(ctx, state) {
   const t = getTranslations(state.language);
   const commentLine = state.comment ? `Comment: ${state.comment}\n` : '';
@@ -197,8 +200,9 @@ function goBack(ctx, userId) {
 
   const t = getTranslations(state.language);
 
-  if (state.step === 'select_site') start(ctx);
-  else if (state.step === 'select_area') {
+  if (state.step === 'select_site') {
+    start(ctx);
+  } else if (state.step === 'select_area') {
     ctx.reply(t.chooseArea, { reply_markup: { keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], resize_keyboard: true }});
   } else if (state.step === 'select_warehouse') {
     ctx.reply(t.chooseWarehouse, { reply_markup: { keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}], [{ text: "🏠 Главное меню" }]], resize_keyboard: true }});
