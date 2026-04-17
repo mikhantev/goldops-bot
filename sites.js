@@ -6,41 +6,63 @@ let cache = null;
 let cacheTime = 0;
 const CACHE_TTL = 10 * 60 * 1000;
 
+// ==================== AUTH ====================
 function getAuthClient() {
+  let email;
+  let key;
+
+  // 🔥 основной вариант — через base64 JSON
+  if (config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64) {
+    const jsonString = Buffer.from(
+      config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64,
+      'base64'
+    ).toString('utf8');
+
+    const creds = JSON.parse(jsonString);
+
+    email = creds.client_email;
+    key = creds.private_key;
+  } else {
+    // fallback (если вдруг будешь использовать старый способ)
+    email = config.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    key = config.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  }
+
   console.log('SPREADSHEET_ID =', config.SPREADSHEET_ID);
-  console.log('SERVICE_ACCOUNT_EMAIL =', config.GOOGLE_SERVICE_ACCOUNT_EMAIL);
-  console.log('PRIVATE_KEY_EXISTS =', !!config.GOOGLE_PRIVATE_KEY);
+  console.log('SERVICE_ACCOUNT_EMAIL =', email);
+  console.log('PRIVATE_KEY_EXISTS =', !!key);
 
   if (!config.SPREADSHEET_ID) {
     throw new Error('SPREADSHEET_ID is missing');
   }
-  if (!config.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_EMAIL is missing');
+  if (!email) {
+    throw new Error('Service account email is missing');
   }
-  if (!config.GOOGLE_PRIVATE_KEY) {
-    throw new Error('GOOGLE_PRIVATE_KEY is missing');
+  if (!key) {
+    throw new Error('Service account private key is missing');
   }
 
   return new JWT({
-    email: config.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: config.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    scopes: [
-      'https://www.googleapis.com/auth/spreadsheets'
-    ]
+    email,
+    key,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets']
   });
 }
 
+// ==================== DOC ====================
 async function getDoc() {
   const auth = getAuthClient();
   const doc = new GoogleSpreadsheet(config.SPREADSHEET_ID, auth);
 
   await doc.loadInfo();
+
   console.log('DOC TITLE =', doc.title);
   console.log('SHEETS =', Object.keys(doc.sheetsByTitle));
 
   return doc;
 }
 
+// ==================== SITES ====================
 async function getMiningSites() {
   const now = Date.now();
 
@@ -82,6 +104,7 @@ async function getMiningSites() {
   }
 }
 
+// ==================== WAREHOUSES ====================
 async function getWarehouses() {
   const now = Date.now();
 
@@ -123,6 +146,7 @@ async function getWarehouses() {
   }
 }
 
+// ==================== SAVE ====================
 async function addGoldShipment(data) {
   try {
     const doc = await getDoc();
