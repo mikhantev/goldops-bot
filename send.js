@@ -33,10 +33,9 @@ async function start(ctx) {
     }
 
     const miningSites = await sites.getMiningSites();
-    console.log('SEND > miningSites =', JSON.stringify(miningSites, null, 2));
 
     if (!miningSites || miningSites.length === 0) {
-      return ctx.reply('❌ Участки не загрузились из таблицы. Попробуйте позже.');
+      return ctx.reply(t.sitesLoadError);
     }
 
     const keyboard = miningSites.map(site => [
@@ -49,12 +48,12 @@ async function start(ctx) {
     });
   } catch (error) {
     console.error('❌ SEND FLOW ERROR:', error);
-    await ctx.reply('❌ Ошибка при запуске отправки золота');
+    await ctx.reply('❌ Ошибка запуска отправки золота / Error starting send gold');
   }
 }
 
 async function getUserData(userId) {
-  const isDirector = userId.toString() === '344577046' || userId.toString() === '123456789';
+  const isDirector = ['344577046', '123456789'].includes(userId.toString());
   return {
     role: isDirector ? 'director' : 'operator',
     defaultSite: 'SITE-001',
@@ -68,7 +67,7 @@ async function proceedToToSite(ctx, userId) {
 
   const warehouses = await sites.getWarehouses();
   if (!warehouses || warehouses.length === 0) {
-    return ctx.reply('❌ Склады не загрузились из таблицы');
+    return ctx.reply(t.warehousesLoadError);
   }
 
   const keyboard = warehouses.map(w => [{ text: `${w.name || w.code} (${w.code})` }]);
@@ -92,20 +91,17 @@ async function handleText(ctx) {
     const state = userState[userId];
 
     if (!state) {
-      await ctx.reply('Начните заново через меню.');
+      await ctx.reply('Начните заново через меню / Start again from menu');
       return;
     }
 
     const t = getTranslations(state.language);
 
-    // Главное меню
     if (text === t.mainMenu) {
-      const lang = state.language || 'ru';
       delete userState[userId];
-      return require('./menu').showMainMenu(ctx, lang);
+      return require('./menu').showMainMenu(ctx, state.language);
     }
 
-    // Назад
     if (text === t.back) {
       return goBack(ctx, userId);
     }
@@ -151,9 +147,7 @@ async function handleText(ctx) {
 
     // GOLD TYPE
     if (state.step === 'select_gold_type') {
-      if (!['Raw Gold', 'Concentrate', 'Dore'].includes(text)) {
-        return ctx.reply(t.errorInvalidGoldType);
-      }
+      if (!['Raw Gold', 'Concentrate', 'Dore'].includes(text)) return ctx.reply(t.errorInvalidGoldType);
       state.goldType = text;
       state.step = 'enter_weight';
       state.history.push('enter_weight');
@@ -196,15 +190,14 @@ async function handleText(ctx) {
         return ctx.reply(t.sendPhotoRequired);
       }
       if (text === t.cancelBtn) {
-        const lang = state.language || 'ru';
         delete userState[userId];
         await ctx.reply(t.operationCancelled);
-        return require('./menu').showMainMenu(ctx, lang);
+        return require('./menu').showMainMenu(ctx, state.language);
       }
     }
   } catch (error) {
     console.error('❌ SEND handleText ERROR:', error);
-    await ctx.reply('❌ Ошибка обработки отправки');
+    await ctx.reply('❌ Ошибка обработки отправки / Processing error');
   }
 }
 
@@ -239,7 +232,7 @@ async function handlePhoto(ctx) {
     const state = userState[userId];
 
     if (!state || state.step !== 'send_photo') {
-      return ctx.reply('❌ Фото можно отправить только после подтверждения.');
+      return ctx.reply(getTranslations(state?.language || 'ru').sendPhotoRequired);
     }
 
     const photo = ctx.message.photo[ctx.message.photo.length - 1];
@@ -269,7 +262,7 @@ async function handleLocation(ctx) {
     const state = userState[userId];
 
     if (!state || state.step !== 'send_location') {
-      return ctx.reply('❌ Отправьте геолокацию после фото.');
+      return ctx.reply('❌ Отправьте геолокацию после фото');
     }
 
     const location = ctx.message.location;
@@ -305,16 +298,15 @@ async function handleLocation(ctx) {
       await ctx.replyWithLocation(state.latitude, state.longitude);
       await ctx.reply(
         `${t.successMessage}ID: ${shipmentId}\n\n` +
-        `📍 Геолокация сохранена\n` +
-        `🔗 [Открыть на карте](${googleMapsLink})`
+        `📍 ${t.locationSaved}\n` +
+        `🔗 [${t.openMap}](${googleMapsLink})`
       );
     } else {
-      await ctx.reply('❌ Не удалось сохранить отправку.');
+      await ctx.reply(t.saveError);
     }
 
     delete userState[userId];
-    const lang = state.language || 'ru';
-    return require('./menu').showMainMenu(ctx, lang);
+    return require('./menu').showMainMenu(ctx, state.language);
 
   } catch (error) {
     console.error('❌ handleLocation ERROR:', error);
@@ -337,7 +329,9 @@ async function goBack(ctx, userId) {
   if (state.step === 'select_from_site') return start(ctx);
   if (state.step === 'select_to_site') return proceedToToSite(ctx, userId);
   if (state.step === 'select_gold_type') {
-    return ctx.reply(t.chooseGoldType, { reply_markup: { keyboard: [['Raw Gold', 'Concentrate'], ['Dore'], [t.back, t.mainMenu]], resize_keyboard: true }});
+    return ctx.reply(t.chooseGoldType, {
+      reply_markup: { keyboard: [['Raw Gold', 'Concentrate'], ['Dore'], [t.back, t.mainMenu]], resize_keyboard: true }
+    });
   }
   if (state.step === 'enter_weight') return ctx.reply(t.enterWeight);
   if (state.step === 'enter_purity') return ctx.reply(t.enterPurity);
@@ -377,6 +371,11 @@ function getTranslations(lang) {
       sendLocationRequired: '📍 Пришлите геолокацию отправки (обязательно)',
       sendLocationBtn: '📍 Отправить мою геолокацию',
       successMessage: '✅ Отправка золота успешно сохранена!\n\n',
+      locationSaved: 'Геолокация сохранена',
+      openMap: 'Открыть на карте',
+      saveError: '❌ Не удалось сохранить отправку',
+      sitesLoadError: '❌ Участки не загрузились из таблицы. Попробуйте позже.',
+      warehousesLoadError: '❌ Склады не загрузились из таблицы',
       labelFrom: 'Откуда',
       labelTo: 'Куда',
       labelType: 'Тип',
@@ -408,6 +407,11 @@ function getTranslations(lang) {
       sendLocationRequired: '📍 Please send location of the shipment (required)',
       sendLocationBtn: '📍 Send my location',
       successMessage: '✅ Gold shipment successfully saved!\n\n',
+      locationSaved: 'Location saved',
+      openMap: 'Open on map',
+      saveError: '❌ Failed to save shipment',
+      sitesLoadError: '❌ Sites failed to load from table. Please try later.',
+      warehousesLoadError: '❌ Warehouses failed to load from table',
       labelFrom: 'From',
       labelTo: 'To',
       labelType: 'Type',
@@ -423,5 +427,5 @@ module.exports = {
   start,
   handleText,
   handlePhoto,
-  handleLocation   // ← важно добавить!
+  handleLocation
 };
