@@ -9,11 +9,15 @@ const menu = require('./menu');
 const intake = require('./intake');
 const send = require('./send');
 
+console.log('Бот инициализируется...');
+
+// ==================== КОМАНДЫ И КНОПКИ ====================
 bot.start(async (ctx) => {
   try {
     await menu.showLanguageMenu(ctx);
   } catch (err) {
     console.error('START ERROR:', err);
+    await ctx.reply('❌ Ошибка запуска бота');
   }
 });
 
@@ -34,6 +38,7 @@ bot.hears(['🔄 Смена языка', '🔄 Change Language'], async (ctx) =>
   }
 });
 
+// Приём золота
 bot.hears(['📥 Приём золота', '📥 Gold Intake'], async (ctx) => {
   try {
     console.log('🟡 INTAKE BUTTON TRIGGERED');
@@ -43,7 +48,8 @@ bot.hears(['📥 Приём золота', '📥 Gold Intake'], async (ctx) => {
   }
 });
 
-bot.hears(/Отправка золота|Send Gold/, async (ctx) => {
+// Отправка золота
+bot.hears(['📤 Отправка золота', '📤 Send Gold'], async (ctx) => {
   try {
     console.log('🟢 BUTTON SEND TRIGGERED');
     await send.start(ctx);
@@ -53,66 +59,70 @@ bot.hears(/Отправка золота|Send Gold/, async (ctx) => {
   }
 });
 
+// ==================== ОБРАБОТКА СООБЩЕНИЙ ====================
 bot.on('text', async (ctx) => {
+  const text = ctx.message.text.trim();
+  console.log('TEXT RECEIVED =', text);
+
+  // Игнорируем кнопки меню и языка — они уже обработаны выше
+  if ([
+    '🇷🇺 Русский', '🇬🇧 English',
+    '🔄 Смена языка', '🔄 Change Language',
+    '📥 Приём золота', '📥 Gold Intake',
+    '📤 Отправка золота', '📤 Send Gold'
+  ].includes(text)) {
+    return;
+  }
+
   try {
-    const text = ctx.message.text.trim();
-    console.log('TEXT RECEIVED =', text);
-
-    if ([
-      '🇷🇺 Русский', '🇬🇧 English',
-      '🔄 Смена языка', '🔄 Change Language',
-      '📥 Приём золота', '📥 Gold Intake',
-      '📤 Отправка золота', '📤 Send Gold'
-    ].includes(text)) {
-      return;
-    }
-
-    // Сначала пробуем send flow
-    try {
-      await send.handleText(ctx);
-      return;
-    } catch (err) {
-      console.error('SEND TEXT HANDLER ERROR:', err);
-    }
-
-    // Потом intake flow
-    try {
-      await intake.handleText(ctx);
-    } catch (err) {
-      console.error('INTAKE TEXT HANDLER ERROR:', err);
-    }
+    // Сначала пытаемся обработать в send (он сейчас активнее)
+    await send.handleText(ctx);
+    return;
   } catch (err) {
-    console.error('TEXT HANDLER ERROR:', err);
+    console.error('SEND TEXT HANDLER ERROR:', err);
+  }
+
+  try {
+    // Если не сработало — пробуем intake
+    await intake.handleText(ctx);
+  } catch (err) {
+    console.error('INTAKE TEXT HANDLER ERROR:', err);
   }
 });
 
 bot.on('photo', async (ctx) => {
+  console.log('PHOTO RECEIVED');
+
   try {
-    console.log('PHOTO RECEIVED');
-
-    // Сначала пробуем send flow
-    try {
-      await send.handlePhoto(ctx);
-      return;
-    } catch (err) {
-      console.error('SEND PHOTO HANDLER ERROR:', err);
-    }
-
-    // Потом intake flow
-    try {
-      await intake.handlePhoto(ctx);
-    } catch (err) {
-      console.error('INTAKE PHOTO HANDLER ERROR:', err);
-    }
+    await send.handlePhoto(ctx);
+    return;
   } catch (err) {
-    console.error('PHOTO HANDLER ERROR:', err);
+    console.error('SEND PHOTO HANDLER ERROR:', err);
+  }
+
+  try {
+    await intake.handlePhoto(ctx);
+  } catch (err) {
+    console.error('INTAKE PHOTO HANDLER ERROR:', err);
+  }
+});
+
+// Новый обработчик для геолокации (ОБЯЗАТЕЛЬНО!)
+bot.on('location', async (ctx) => {
+  console.log('LOCATION RECEIVED');
+  try {
+    await send.handleLocation(ctx);
+  } catch (err) {
+    console.error('LOCATION HANDLER ERROR:', err);
+    await ctx.reply('❌ Ошибка обработки геолокации');
   }
 });
 
 bot.catch((err, ctx) => {
-  console.error('BOT ERROR:', err);
+  console.error('GLOBAL BOT ERROR:', err);
 });
 
+// ==================== ЗАПУСК СЕРВЕРА ====================
 app.use(express.json());
 app.use(bot.webhookCallback('/webhook'));
 

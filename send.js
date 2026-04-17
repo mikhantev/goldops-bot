@@ -26,10 +26,8 @@ async function start(ctx) {
 
     if (!isDirector && userData.defaultSite) {
       console.log('👤 OPERATOR MODE, DEFAULT SITE =', userData.defaultSite);
-
       userState[userId].fromSite = userData.defaultSite;
       userState[userId].fromSiteName = userData.defaultSiteName || userData.defaultSite;
-
       await proceedToToSite(ctx, userId);
       return;
     }
@@ -38,8 +36,7 @@ async function start(ctx) {
     console.log('SEND > miningSites =', JSON.stringify(miningSites, null, 2));
 
     if (!miningSites || miningSites.length === 0) {
-      await ctx.reply('❌ Участки не загрузились из таблицы. Попробуйте позже.');
-      return;
+      return ctx.reply('❌ Участки не загрузились из таблицы. Попробуйте позже.');
     }
 
     const keyboard = miningSites.map(site => [
@@ -48,10 +45,7 @@ async function start(ctx) {
     keyboard.push([{ text: t.back }, { text: t.mainMenu }]);
 
     await ctx.reply(t.chooseFromSite, {
-      reply_markup: {
-        keyboard,
-        resize_keyboard: true
-      }
+      reply_markup: { keyboard, resize_keyboard: true }
     });
   } catch (error) {
     console.error('❌ SEND FLOW ERROR:', error);
@@ -60,10 +54,7 @@ async function start(ctx) {
 }
 
 async function getUserData(userId) {
-  const isDirector = 
-    userId.toString() === '123456789' || 
-    userId.toString() === '344577046';
-
+  const isDirector = userId.toString() === '344577046' || userId.toString() === '123456789';
   return {
     role: isDirector ? 'director' : 'operator',
     defaultSite: 'SITE-001',
@@ -76,21 +67,15 @@ async function proceedToToSite(ctx, userId) {
   const t = getTranslations(state.language);
 
   const warehouses = await sites.getWarehouses();
-  console.log('📦 SEND > warehouses =', JSON.stringify(warehouses, null, 2));
-
   if (!warehouses || warehouses.length === 0) {
-    await ctx.reply('❌ Склады не загрузились из таблицы');
-    return;
+    return ctx.reply('❌ Склады не загрузились из таблицы');
   }
 
   const keyboard = warehouses.map(w => [{ text: `${w.name || w.code} (${w.code})` }]);
   keyboard.push([{ text: t.back }, { text: t.mainMenu }]);
 
   await ctx.reply(t.chooseToSite, {
-    reply_markup: {
-      keyboard,
-      resize_keyboard: true
-    }
+    reply_markup: { keyboard, resize_keyboard: true }
   });
 
   state.step = 'select_to_site';
@@ -113,12 +98,14 @@ async function handleText(ctx) {
 
     const t = getTranslations(state.language);
 
+    // Главное меню
     if (text === t.mainMenu) {
       const lang = state.language || 'ru';
       delete userState[userId];
       return require('./menu').showMainMenu(ctx, lang);
     }
 
+    // Назад
     if (text === t.back) {
       return goBack(ctx, userId);
     }
@@ -127,10 +114,8 @@ async function handleText(ctx) {
     if (state.step === 'select_from_site') {
       const miningSites = await sites.getMiningSites();
       const site = miningSites.find(s => 
-        s.code === text || 
-        `${s.name} (${s.code})` === text
+        s.code === text || `${s.name || s.code} (${s.code})` === text
       );
-
       if (!site) return ctx.reply(t.errorInvalidSite);
 
       state.fromSite = site.code;
@@ -138,23 +123,19 @@ async function handleText(ctx) {
       return proceedToToSite(ctx, userId);
     }
 
-    // TO SITE
+    // TO WAREHOUSE
     if (state.step === 'select_to_site') {
       const warehouses = await sites.getWarehouses();
       const wh = warehouses.find(w => 
-        w.code === text || 
-        `${w.name} (${w.code})` === text
+        w.code === text || `${w.name || w.code} (${w.code})` === text
       );
-
       if (!wh) return ctx.reply(t.errorInvalidWarehouse);
 
       state.toSite = wh.code;
       state.toSiteName = wh.name || wh.code;
 
       state.step = 'select_gold_type';
-      if (state.history[state.history.length - 1] !== 'select_gold_type') {
-        state.history.push('select_gold_type');
-      }
+      state.history.push('select_gold_type');
 
       return ctx.reply(t.chooseGoldType, {
         reply_markup: {
@@ -175,37 +156,27 @@ async function handleText(ctx) {
       }
       state.goldType = text;
       state.step = 'enter_weight';
-      if (state.history[state.history.length - 1] !== 'enter_weight') {
-        state.history.push('enter_weight');
-      }
+      state.history.push('enter_weight');
       return ctx.reply(t.enterWeight);
     }
 
     // WEIGHT
     if (state.step === 'enter_weight') {
       const weight = parseFloat(text.replace(',', '.'));
-      if (isNaN(weight) || weight <= 0 || weight > 100000) {
-        return ctx.reply(t.errorWeight);
-      }
+      if (isNaN(weight) || weight <= 0 || weight > 100000) return ctx.reply(t.errorWeight);
       state.weight = weight;
       state.step = 'enter_purity';
-      if (state.history[state.history.length - 1] !== 'enter_purity') {
-        state.history.push('enter_purity');
-      }
+      state.history.push('enter_purity');
       return ctx.reply(t.enterPurity);
     }
 
     // PURITY
     if (state.step === 'enter_purity') {
       const purity = parseFloat(text.replace(',', '.'));
-      if (isNaN(purity) || purity < 0 || purity > 100) {
-        return ctx.reply(t.errorPurity);
-      }
+      if (isNaN(purity) || purity < 0 || purity > 100) return ctx.reply(t.errorPurity);
       state.purity = purity;
       state.step = 'enter_comment';
-      if (state.history[state.history.length - 1] !== 'enter_comment') {
-        state.history.push('enter_comment');
-      }
+      state.history.push('enter_comment');
       return ctx.reply(t.enterComment);
     }
 
@@ -213,9 +184,7 @@ async function handleText(ctx) {
     if (state.step === 'enter_comment') {
       state.comment = (text.toLowerCase() === 'skip' || text === t.skipComment) ? '' : text;
       state.step = 'confirm';
-      if (state.history[state.history.length - 1] !== 'confirm') {
-        state.history.push('confirm');
-      }
+      state.history.push('confirm');
       return showConfirmation(ctx, state);
     }
 
@@ -223,12 +192,9 @@ async function handleText(ctx) {
     if (state.step === 'confirm') {
       if (text === t.confirmBtn) {
         state.step = 'send_photo';
-        if (state.history[state.history.length - 1] !== 'send_photo') {
-          state.history.push('send_photo');
-        }
+        state.history.push('send_photo');
         return ctx.reply(t.sendPhotoRequired);
       }
-
       if (text === t.cancelBtn) {
         const lang = state.language || 'ru';
         delete userState[userId];
@@ -244,18 +210,17 @@ async function handleText(ctx) {
 
 async function showConfirmation(ctx, s) {
   const t = getTranslations(s.language);
-
   const message = 
     `${t.confirmationHeader}\n\n` +
-    `From: ${s.fromSiteName}\n` +
-    `To: ${s.toSiteName}\n` +
-    `Type: ${s.goldType}\n` +
-    `Weight: ${s.weight} g\n` +
-    `Purity: ${s.purity}%\n` +
-    (s.comment ? `Comment: ${s.comment}\n` : '') +
+    `${t.labelFrom}: ${s.fromSiteName}\n` +
+    `${t.labelTo}: ${s.toSiteName}\n` +
+    `${t.labelType}: ${s.goldType}\n` +
+    `${t.labelWeight}: ${s.weight} g\n` +
+    `${t.labelPurity}: ${s.purity}%\n` +
+    (s.comment ? `${t.labelComment}: ${s.comment}\n` : '') +
     `\n${t.confirmQuestion}`;
 
-  return ctx.reply(message, {
+  await ctx.reply(message, {
     reply_markup: {
       keyboard: [
         [t.confirmBtn],
@@ -267,7 +232,7 @@ async function showConfirmation(ctx, s) {
   });
 }
 
-// ==================== ФОТО + ЗАПИСЬ ====================
+// ==================== PHOTO + LOCATION ====================
 async function handlePhoto(ctx) {
   try {
     const userId = ctx.from.id;
@@ -277,12 +242,42 @@ async function handlePhoto(ctx) {
       return ctx.reply('❌ Фото можно отправить только после подтверждения.');
     }
 
-    const photo = ctx.message.photo?.[ctx.message.photo.length - 1];
-    if (!photo) {
-      return ctx.reply('❌ Фото не получено.');
+    const photo = ctx.message.photo[ctx.message.photo.length - 1];
+    state.photoFileId = photo.file_id;
+
+    const t = getTranslations(state.language);
+
+    state.step = 'send_location';
+    state.history.push('send_location');
+
+    await ctx.reply(t.sendLocationRequired, {
+      reply_markup: {
+        keyboard: [[{ text: t.sendLocationBtn, request_location: true }]],
+        resize_keyboard: true,
+        one_time_keyboard: true
+      }
+    });
+  } catch (error) {
+    console.error('❌ handlePhoto ERROR:', error);
+    await ctx.reply('❌ Ошибка при обработке фото');
+  }
+}
+
+async function handleLocation(ctx) {
+  try {
+    const userId = ctx.from.id;
+    const state = userState[userId];
+
+    if (!state || state.step !== 'send_location') {
+      return ctx.reply('❌ Отправьте геолокацию после фото.');
     }
 
-    const fileId = photo.file_id;
+    const location = ctx.message.location;
+    state.latitude = location.latitude;
+    state.longitude = location.longitude;
+
+    const googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${state.latitude},${state.longitude}`;
+
     const shipmentId = `SHP-${Date.now()}`;
 
     const saved = await sites.addGoldShipment({
@@ -297,27 +292,33 @@ async function handlePhoto(ctx) {
       weight: state.weight,
       purity: state.purity,
       comment: state.comment || '',
-      photoFileId: fileId,
+      photoFileId: state.photoFileId,
+      latitude: state.latitude,
+      longitude: state.longitude,
+      googleMapsLink: googleMapsLink,
       status: 'CREATED'
     });
 
-    if (!saved) {
-      return ctx.reply('❌ Не удалось сохранить отправку в таблицу.');
-    }
-
     const t = getTranslations(state.language);
 
-    await ctx.reply(
-      `${t.successMessage || '✅ Отправка успешно сохранена'}\nID: ${shipmentId}`
-    );
+    if (saved) {
+      await ctx.replyWithLocation(state.latitude, state.longitude);
+      await ctx.reply(
+        `${t.successMessage}ID: ${shipmentId}\n\n` +
+        `📍 Геолокация сохранена\n` +
+        `🔗 [Открыть на карте](${googleMapsLink})`
+      );
+    } else {
+      await ctx.reply('❌ Не удалось сохранить отправку.');
+    }
 
-    const lang = state.language || 'ru';
     delete userState[userId];
+    const lang = state.language || 'ru';
     return require('./menu').showMainMenu(ctx, lang);
 
   } catch (error) {
-    console.error('❌ handlePhoto ERROR:', error);
-    await ctx.reply('❌ Ошибка при сохранении фото');
+    console.error('❌ handleLocation ERROR:', error);
+    await ctx.reply('❌ Ошибка при сохранении геолокации');
   }
 }
 
@@ -336,21 +337,18 @@ async function goBack(ctx, userId) {
   if (state.step === 'select_from_site') return start(ctx);
   if (state.step === 'select_to_site') return proceedToToSite(ctx, userId);
   if (state.step === 'select_gold_type') {
-    return ctx.reply(t.chooseGoldType, {
-      reply_markup: {
-        keyboard: [
-          ['Raw Gold', 'Concentrate'],
-          ['Dore'],
-          [t.back, t.mainMenu]
-        ],
-        resize_keyboard: true
-      }
-    });
+    return ctx.reply(t.chooseGoldType, { reply_markup: { keyboard: [['Raw Gold', 'Concentrate'], ['Dore'], [t.back, t.mainMenu]], resize_keyboard: true }});
   }
   if (state.step === 'enter_weight') return ctx.reply(t.enterWeight);
   if (state.step === 'enter_purity') return ctx.reply(t.enterPurity);
   if (state.step === 'enter_comment') return ctx.reply(t.enterComment);
   if (state.step === 'confirm') return showConfirmation(ctx, state);
+  if (state.step === 'send_photo') return ctx.reply(t.sendPhotoRequired);
+  if (state.step === 'send_location') {
+    return ctx.reply(t.sendLocationRequired, {
+      reply_markup: { keyboard: [[{ text: t.sendLocationBtn, request_location: true }]], resize_keyboard: true }
+    });
+  }
 }
 
 function getTranslations(lang) {
@@ -375,7 +373,16 @@ function getTranslations(lang) {
       back: '🔙 Назад',
       mainMenu: '🏠 Главное меню',
       skipComment: 'Пропустить',
-      sendPhotoRequired: '📸 Пришлите фото отправки золота'
+      sendPhotoRequired: '📸 Пришлите фото отправки золота',
+      sendLocationRequired: '📍 Пришлите геолокацию отправки (обязательно)',
+      sendLocationBtn: '📍 Отправить мою геолокацию',
+      successMessage: '✅ Отправка золота успешно сохранена!\n\n',
+      labelFrom: 'Откуда',
+      labelTo: 'Куда',
+      labelType: 'Тип',
+      labelWeight: 'Вес',
+      labelPurity: 'Чистота',
+      labelComment: 'Комментарий'
     },
     en: {
       chooseFromSite: '📍 From site:',
@@ -397,7 +404,16 @@ function getTranslations(lang) {
       back: '🔙 Back',
       mainMenu: '🏠 Main Menu',
       skipComment: 'Skip',
-      sendPhotoRequired: '📸 Please send shipment photo'
+      sendPhotoRequired: '📸 Please send shipment photo',
+      sendLocationRequired: '📍 Please send location of the shipment (required)',
+      sendLocationBtn: '📍 Send my location',
+      successMessage: '✅ Gold shipment successfully saved!\n\n',
+      labelFrom: 'From',
+      labelTo: 'To',
+      labelType: 'Type',
+      labelWeight: 'Weight',
+      labelPurity: 'Purity',
+      labelComment: 'Comment'
     }
   };
   return tr[lang] || tr.ru;
@@ -406,5 +422,6 @@ function getTranslations(lang) {
 module.exports = {
   start,
   handleText,
-  handlePhoto
+  handlePhoto,
+  handleLocation   // ← важно добавить!
 };
