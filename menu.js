@@ -24,7 +24,7 @@ const menu = {
     setTimeout(() => showMainMenu(ctx, lang), 800);
   },
 
-  // Кнопка "Смена языка" — полный перезапуск выбора языка
+  // Исправленная кнопка "Смена языка" — полный перезапуск выбора языка
   changeLanguage: (ctx) => {
     showLanguageMenu(ctx);
   },
