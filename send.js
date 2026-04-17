@@ -24,7 +24,6 @@ async function start(ctx) {
 
     const t = getTranslations(lang);
 
-    // Для обычных сотрудников автоматически ставим default site
     if (!isDirector && userData.defaultSite) {
       console.log('👤 OPERATOR MODE, DEFAULT SITE =', userData.defaultSite);
 
@@ -35,7 +34,6 @@ async function start(ctx) {
       return;
     }
 
-    // Для директоров — полный выбор
     const miningSites = await sites.getMiningSites();
     console.log('SEND > miningSites =', JSON.stringify(miningSites, null, 2));
 
@@ -61,7 +59,6 @@ async function start(ctx) {
   }
 }
 
-// ==================== ВСПОМОГАТЕЛЬНЫЕ ====================
 async function getUserData(userId) {
   const isDirector = 
     userId.toString() === '123456789' || 
@@ -75,47 +72,39 @@ async function getUserData(userId) {
 }
 
 async function proceedToToSite(ctx, userId) {
-  try {
-    const state = userState[userId];
-    const t = getTranslations(state.language);
+  const state = userState[userId];
+  const t = getTranslations(state.language);
 
-    const warehouses = await sites.getWarehouses();
-    console.log('📦 SEND > warehouses =', JSON.stringify(warehouses, null, 2));
+  const warehouses = await sites.getWarehouses();
+  console.log('📦 SEND > warehouses =', JSON.stringify(warehouses, null, 2));
 
-    if (!warehouses || warehouses.length === 0) {
-      await ctx.reply('❌ Склады не загрузились из таблицы');
-      return;
+  if (!warehouses || warehouses.length === 0) {
+    await ctx.reply('❌ Склады не загрузились из таблицы');
+    return;
+  }
+
+  const keyboard = warehouses.map(w => [{ text: `${w.name || w.code} (${w.code})` }]);
+  keyboard.push([{ text: t.back }, { text: t.mainMenu }]);
+
+  await ctx.reply(t.chooseToSite, {
+    reply_markup: {
+      keyboard,
+      resize_keyboard: true
     }
+  });
 
-    const keyboard = warehouses.map(w => [{ text: `${w.name || w.code} (${w.code})` }]);
-    keyboard.push([{ text: t.back }, { text: t.mainMenu }]);
-
-    await ctx.reply(t.chooseToSite, {
-      reply_markup: {
-        keyboard,
-        resize_keyboard: true
-      }
-    });
-
-    state.step = 'select_to_site';
-    if (state.history[state.history.length - 1] !== 'select_to_site') {
-      state.history.push('select_to_site');
-    }
-  } catch (error) {
-    console.error('❌ proceedToToSite ERROR:', error);
-    await ctx.reply('❌ Ошибка при загрузке складов');
+  state.step = 'select_to_site';
+  if (state.history[state.history.length - 1] !== 'select_to_site') {
+    state.history.push('select_to_site');
   }
 }
 
-// ==================== ОБРАБОТКА ====================
+// ==================== ОБРАБОТКА ТЕКСТА ====================
 async function handleText(ctx) {
   try {
     const userId = ctx.from.id;
     const text = ctx.message.text.trim();
     const state = userState[userId];
-
-    console.log('✍️ SEND TEXT INPUT =', text);
-    console.log('🧭 SEND STATE =', state?.step);
 
     if (!state) {
       await ctx.reply('Начните заново через меню.');
@@ -142,13 +131,10 @@ async function handleText(ctx) {
         `${s.name} (${s.code})` === text
       );
 
-      if (!site) {
-        return ctx.reply(t.errorInvalidSite);
-      }
+      if (!site) return ctx.reply(t.errorInvalidSite);
 
       state.fromSite = site.code;
       state.fromSiteName = site.name || site.code;
-
       return proceedToToSite(ctx, userId);
     }
 
@@ -160,9 +146,7 @@ async function handleText(ctx) {
         `${w.name} (${w.code})` === text
       );
 
-      if (!wh) {
-        return ctx.reply(t.errorInvalidWarehouse);
-      }
+      if (!wh) return ctx.reply(t.errorInvalidWarehouse);
 
       state.toSite = wh.code;
       state.toSiteName = wh.name || wh.code;
@@ -189,7 +173,6 @@ async function handleText(ctx) {
       if (!['Raw Gold', 'Concentrate', 'Dore'].includes(text)) {
         return ctx.reply(t.errorInvalidGoldType);
       }
-
       state.goldType = text;
       state.step = 'enter_weight';
       if (state.history[state.history.length - 1] !== 'enter_weight') {
@@ -259,7 +242,6 @@ async function handleText(ctx) {
   }
 }
 
-// ==================== ПОДТВЕРЖДЕНИЕ ====================
 async function showConfirmation(ctx, s) {
   const t = getTranslations(s.language);
 
@@ -291,11 +273,13 @@ async function handlePhoto(ctx) {
     const userId = ctx.from.id;
     const state = userState[userId];
 
-    if (!state || state.step !== 'send_photo') return;
+    if (!state || state.step !== 'send_photo') {
+      return ctx.reply('❌ Фото можно отправить только после подтверждения.');
+    }
 
     const photo = ctx.message.photo?.[ctx.message.photo.length - 1];
     if (!photo) {
-      return ctx.reply('❌ Фото не получено');
+      return ctx.reply('❌ Фото не получено.');
     }
 
     const fileId = photo.file_id;
@@ -304,7 +288,7 @@ async function handlePhoto(ctx) {
     const saved = await sites.addGoldShipment({
       shipmentId,
       createdAt: new Date().toISOString(),
-      userId,
+      userId: userId.toString(),
       fromSiteId: state.fromSite,
       fromSiteName: state.fromSiteName,
       toWarehouseId: state.toSite,
@@ -312,29 +296,31 @@ async function handlePhoto(ctx) {
       goldType: state.goldType,
       weight: state.weight,
       purity: state.purity,
-      comment: state.comment,
+      comment: state.comment || '',
       photoFileId: fileId,
       status: 'CREATED'
     });
 
     if (!saved) {
-      return ctx.reply('❌ Не удалось сохранить отправку в таблицу');
+      return ctx.reply('❌ Не удалось сохранить отправку в таблицу.');
     }
 
+    const t = getTranslations(state.language);
+
     await ctx.reply(
-      `${state.language === 'ru' ? '✅ Отправка успешно сохранена' : '✅ Shipment saved'}\nID: ${shipmentId}`
+      `${t.successMessage || '✅ Отправка успешно сохранена'}\nID: ${shipmentId}`
     );
 
     const lang = state.language || 'ru';
     delete userState[userId];
     return require('./menu').showMainMenu(ctx, lang);
+
   } catch (error) {
-    console.error('❌ SEND handlePhoto ERROR:', error);
+    console.error('❌ handlePhoto ERROR:', error);
     await ctx.reply('❌ Ошибка при сохранении фото');
   }
 }
 
-// ==================== НАЗАД ====================
 async function goBack(ctx, userId) {
   const state = userState[userId];
   if (!state || state.history.length <= 1) {
@@ -367,7 +353,6 @@ async function goBack(ctx, userId) {
   if (state.step === 'confirm') return showConfirmation(ctx, state);
 }
 
-// ==================== ПЕРЕВОДЫ ====================
 function getTranslations(lang) {
   const tr = {
     ru: {
@@ -390,8 +375,7 @@ function getTranslations(lang) {
       back: '🔙 Назад',
       mainMenu: '🏠 Главное меню',
       skipComment: 'Пропустить',
-      sendPhotoRequired: '📸 Пришлите фото отправки золота',
-      waitingPhoto: '📸 Пожалуйста, пришлите фото'
+      sendPhotoRequired: '📸 Пришлите фото отправки золота'
     },
     en: {
       chooseFromSite: '📍 From site:',
@@ -413,8 +397,7 @@ function getTranslations(lang) {
       back: '🔙 Back',
       mainMenu: '🏠 Main Menu',
       skipComment: 'Skip',
-      sendPhotoRequired: '📸 Please send shipment photo',
-      waitingPhoto: '📸 Please send a photo'
+      sendPhotoRequired: '📸 Please send shipment photo'
     }
   };
   return tr[lang] || tr.ru;
