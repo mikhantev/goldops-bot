@@ -34,7 +34,7 @@ function handleText(ctx) {
   const state = userState[userId];
 
   if (!state) {
-    start(ctx);   // если состояние потерялось — начинаем заново
+    start(ctx);
     return;
   }
 
@@ -50,20 +50,26 @@ function handleText(ctx) {
       state.site = text;
       state.step = 'select_area';
       state.history.push('select_area');
-      ctx.reply(t.chooseArea, { reply_markup: { keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}]], resize_keyboard: true }});
+      ctx.reply(t.chooseArea, { 
+        reply_markup: { keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}]], resize_keyboard: true }
+      });
     }
   } 
   else if (state.step === 'select_area') {
     state.area = text;
     state.step = 'select_warehouse';
     state.history.push('select_warehouse');
-    ctx.reply(t.chooseWarehouse, { reply_markup: { keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}]], resize_keyboard: true }});
+    ctx.reply(t.chooseWarehouse, { 
+      reply_markup: { keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}]], resize_keyboard: true }
+    });
   } 
   else if (state.step === 'select_warehouse') {
     state.warehouse = text;
     state.step = 'select_gold_type';
     state.history.push('select_gold_type');
-    ctx.reply(t.chooseGoldType, { reply_markup: { keyboard: [[{text:"Raw Gold"}], [{text:"Concentrate"}], [{text:"Dore"}], [{text:t.back}]], resize_keyboard: true }});
+    ctx.reply(t.chooseGoldType, { 
+      reply_markup: { keyboard: [[{text:"Raw Gold"}], [{text:"Concentrate"}], [{text:"Dore"}], [{text:t.back}]], resize_keyboard: true }
+    });
   } 
   else if (state.step === 'select_gold_type') {
     if (['Raw Gold', 'Concentrate', 'Dore'].includes(text)) {
@@ -108,7 +114,7 @@ function handleText(ctx) {
     } else if (text === t.cancelBtn) {
       ctx.reply(t.operationCancelled);
       delete userState[userId];
-      require('./menu').showMainMenu(ctx, state.language);   // ← исправлено
+      require('./menu').showMainMenu(ctx, state.language);
     }
   }
 }
@@ -155,7 +161,7 @@ function handlePhoto(ctx) {
 
     setTimeout(() => {
       delete userState[userId];
-      require('./menu').showMainMenu(ctx, state.language);   // ← исправлено
+      require('./menu').showMainMenu(ctx, state.language);
     }, 1500);
   }
 }
@@ -174,9 +180,8 @@ function goBack(ctx, userId) {
 
   const t = getTranslations(state.language);
 
-  if (state.step === 'select_site') {
-    start(ctx);
-  } else if (state.step === 'select_area') {
+  if (state.step === 'select_site') start(ctx);
+  else if (state.step === 'select_area') {
     ctx.reply(t.chooseArea, { reply_markup: { keyboard: [[{text:"AREA-A"},{text:"AREA-B"}], [{text:"AREA-C"},{text:"AREA-D"}], [{text:t.back}]], resize_keyboard: true }});
   } else if (state.step === 'select_warehouse') {
     ctx.reply(t.chooseWarehouse, { reply_markup: { keyboard: [[{text:"WAREHOUSE-01"},{text:"WAREHOUSE-02"}], [{text:"WAREHOUSE-03"}], [{text:t.back}]], resize_keyboard: true }});
@@ -192,9 +197,47 @@ function goBack(ctx, userId) {
 }
 
 function getTranslations(lang) {
-  const translations = { /* твой оригинальный объект переводов без изменений */ 
-    ru: { /* ... */ },
-    en: { /* ... */ }
+  const translations = {
+    ru: {
+      chooseSite: '📍 Выберите участок (Site):',
+      chooseArea: '📍 Выберите площадь/зону (Area):',
+      chooseWarehouse: '🏬 Выберите склад (Warehouse):',
+      chooseGoldType: '🔸 Выберите тип золота:',
+      enterWeight: '⚖️ Введите вес золота в граммах (только число):',
+      enterPurity: '💎 Введите чистоту (%) (например: 92.5):',
+      enterComment: '💬 Введите комментарий или напишите "Пропустить":',
+      sendPhoto: '📸 Пришлите фото приёма золота (обязательно)',
+      confirmationHeader: 'Проверьте данные перед сохранением:\n\n',
+      confirmQuestion: 'Всё верно?',
+      successMessage: '✅ Приём золота успешно зафиксирован!\n\n',
+      operationCancelled: '❌ Операция отменена.',
+      back: '🔙 Назад',
+      errorWeight: '❌ Вес должен быть больше 0 и меньше 100000 г',
+      errorPurity: '❌ Чистота должна быть от 0 до 100%',
+      confirmBtn: '✅ Подтвердить',
+      cancelBtn: '❌ Отменить',
+      skipComment: 'Пропустить'
+    },
+    en: {
+      chooseSite: '📍 Select Site:',
+      chooseArea: '📍 Select Area/Zone:',
+      chooseWarehouse: '🏬 Select Warehouse:',
+      chooseGoldType: '🔸 Select Gold Type:',
+      enterWeight: '⚖️ Enter weight in grams (number only):',
+      enterPurity: '💎 Enter purity (%) (e.g. 92.5):',
+      enterComment: '💬 Enter comment or type "Skip":',
+      sendPhoto: '📸 Send photo of gold intake (required)',
+      confirmationHeader: 'Please verify the data before saving:\n\n',
+      confirmQuestion: 'Is everything correct?',
+      successMessage: '✅ Gold intake successfully recorded!\n\n',
+      operationCancelled: '❌ Operation cancelled.',
+      back: '🔙 Back',
+      errorWeight: '❌ Weight must be between 0 and 100000 g',
+      errorPurity: '❌ Purity must be between 0 and 100%',
+      confirmBtn: '✅ Confirm',
+      cancelBtn: '❌ Cancel',
+      skipComment: 'Skip'
+    }
   };
   return translations[lang] || translations.ru;
 }
