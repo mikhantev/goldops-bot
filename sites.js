@@ -1,12 +1,15 @@
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const config = require('./config');
 
-// Кэш
 let cache = null;
 let cacheTime = 0;
-const CACHE_TTL = 10 * 60 * 1000; // 10 минут
+const CACHE_TTL = 10 * 60 * 1000;
 
 async function getDoc() {
+  console.log('SPREADSHEET_ID =', config.SPREADSHEET_ID);
+  console.log('SERVICE_ACCOUNT_EMAIL =', config.GOOGLE_SERVICE_ACCOUNT_EMAIL);
+  console.log('PRIVATE_KEY_EXISTS =', !!config.GOOGLE_PRIVATE_KEY);
+
   const doc = new GoogleSpreadsheet(config.SPREADSHEET_ID);
 
   await doc.useServiceAccountAuth({
@@ -15,6 +18,9 @@ async function getDoc() {
   });
 
   await doc.loadInfo();
+  console.log('DOC TITLE =', doc.title);
+  console.log('SHEETS =', Object.keys(doc.sheetsByTitle));
+
   return doc;
 }
 
@@ -22,22 +28,28 @@ async function getMiningSites() {
   const now = Date.now();
 
   if (cache && (now - cacheTime < CACHE_TTL) && cache.mining) {
-    console.log('MINING SITES FROM CACHE:', JSON.stringify(cache.mining, null, 2));
+    console.log('MINING SITES FROM CACHE:', cache.mining);
     return cache.mining;
   }
 
   try {
     const doc = await getDoc();
-    console.log('DOC LOADED OK. SHEETS:', Object.keys(doc.sheetsByTitle));
-
     const sheet = doc.sheetsByTitle['01_Sites'];
+
     if (!sheet) {
-      console.error('❌ Sheet "01_Sites" not found');
+      console.error('❌ Sheet 01_Sites not found');
       return [];
     }
 
     const rows = await sheet.getRows();
-    console.log('01_Sites ROWS COUNT:', rows.length);
+    console.log('01_Sites rows count =', rows.length);
+
+    if (rows.length > 0) {
+      console.log('FIRST ROW RAW =', rows[0]._rawData);
+      console.log('FIRST ROW Site_ID =', rows[0].Site_ID);
+      console.log('FIRST ROW Site_Name =', rows[0].Site_Name);
+      console.log('FIRST ROW Status =', rows[0].Status);
+    }
 
     const mining = rows
       .filter(row => (row.Status || row.get('Status')) === 'Active')
@@ -47,7 +59,7 @@ async function getMiningSites() {
       }))
       .filter(x => x.code || x.name);
 
-    console.log('MINING SITES LOADED:', JSON.stringify(mining, null, 2));
+    console.log('MINING SITES LOADED =', mining);
 
     cache = cache || {};
     cache.mining = mining;
@@ -64,21 +76,19 @@ async function getWarehouses() {
   const now = Date.now();
 
   if (cache && (now - cacheTime < CACHE_TTL) && cache.warehouses) {
-    console.log('WAREHOUSES FROM CACHE:', JSON.stringify(cache.warehouses, null, 2));
     return cache.warehouses;
   }
 
   try {
     const doc = await getDoc();
-
     const sheet = doc.sheetsByTitle['03_Warehouses'];
+
     if (!sheet) {
-      console.error('❌ Sheet "03_Warehouses" not found');
+      console.error('❌ Sheet 03_Warehouses not found');
       return [];
     }
 
     const rows = await sheet.getRows();
-    console.log('03_Warehouses ROWS COUNT:', rows.length);
 
     const warehouses = rows
       .filter(row => (row.Status || row.get('Status')) === 'Active')
@@ -87,8 +97,6 @@ async function getWarehouses() {
         name: row.Warehouse_Name || row.WarehouseName || row.get('Warehouse_Name')
       }))
       .filter(x => x.code || x.name);
-
-    console.log('WAREHOUSES LOADED:', JSON.stringify(warehouses, null, 2));
 
     cache = cache || {};
     cache.warehouses = warehouses;
@@ -126,7 +134,6 @@ async function addGoldShipment(data) {
       Status: data.status || 'CREATED'
     });
 
-    console.log('✅ Gold shipment added:', data.shipmentId);
     return true;
   } catch (error) {
     console.error('❌ Error adding Gold Shipment FULL:', error);
