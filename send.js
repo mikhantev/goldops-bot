@@ -1,6 +1,6 @@
 const sites = require('./sites');
 
-/** Глобальное хранилище языка пользователя */
+/** Глобальное хранилище языка пользователя (надёжнее ctx.session) */
 const userLanguage = {};
 
 /**
@@ -115,7 +115,7 @@ async function start(ctx) {
   try {
     const userId = ctx.from.id;
 
-    // Надёжное определение языка
+    // Надёжное получение языка из глобального хранилища + сессии
     let lang = userLanguage[userId] || ctx.session?.language || 'ru';
     if (lang !== 'ru' && lang !== 'en') lang = 'ru';
 
