@@ -11,10 +11,7 @@ function getAuthClient() {
   let email;
   let key;
 
-  console.log(
-    'BASE64_EXISTS =',
-    !!config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64
-  );
+  console.log('BASE64_EXISTS =', !!config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64);
 
   if (config.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64) {
     const jsonString = Buffer.from(
@@ -28,10 +25,7 @@ function getAuthClient() {
 
     console.log('PARSED CLIENT EMAIL =', creds.client_email);
     console.log('PARSED PRIVATE KEY EXISTS =', !!creds.private_key);
-    console.log(
-      'PRIVATE KEY START =',
-      creds.private_key ? creds.private_key.slice(0, 30) : null
-    );
+    console.log('PRIVATE KEY START =', creds.private_key ? creds.private_key.slice(0, 30) : null);
 
     email = creds.client_email;
     key = creds.private_key;
@@ -44,15 +38,9 @@ function getAuthClient() {
   console.log('SERVICE_ACCOUNT_EMAIL =', email);
   console.log('PRIVATE_KEY_EXISTS =', !!key);
 
-  if (!config.SPREADSHEET_ID) {
-    throw new Error('SPREADSHEET_ID is missing');
-  }
-  if (!email) {
-    throw new Error('Service account email is missing');
-  }
-  if (!key) {
-    throw new Error('Service account private key is missing');
-  }
+  if (!config.SPREADSHEET_ID) throw new Error('SPREADSHEET_ID is missing');
+  if (!email) throw new Error('Service account email is missing');
+  if (!key) throw new Error('Service account private key is missing');
 
   return new JWT({
     email,
@@ -65,19 +53,14 @@ function getAuthClient() {
 async function getDoc() {
   const auth = getAuthClient();
   const doc = new GoogleSpreadsheet(config.SPREADSHEET_ID, auth);
-
   await doc.loadInfo();
-
   console.log('DOC TITLE =', doc.title);
-  console.log('SHEETS =', Object.keys(doc.sheetsByTitle));
-
   return doc;
 }
 
-// ==================== SITES ====================
+// ==================== MINING SITES ====================
 async function getMiningSites() {
   const now = Date.now();
-
   if (cache && now - cacheTime < CACHE_TTL && cache.mining) {
     console.log('MINING SITES FROM CACHE =', cache.mining);
     return cache.mining;
@@ -86,13 +69,14 @@ async function getMiningSites() {
   try {
     const doc = await getDoc();
     const sheet = doc.sheetsByTitle['01_Sites'];
-
     if (!sheet) {
       console.error('❌ Sheet 01_Sites not found');
       return [];
     }
 
-    const rows = await sheet.getRows();
+    // Важно: headerRowIndex: 0 — заголовки в первой строке
+    const rows = await sheet.getRows({ headerRowIndex: 0 });
+
     console.log('01_Sites rows count =', rows.length);
 
     if (rows.length > 0) {
@@ -105,12 +89,12 @@ async function getMiningSites() {
     const mining = rows.map((row, i) => {
       const code = String(row.Site_ID || row.get('Site_ID') || '').trim();
       const name = String(row.Site_Name || row.get('Site_Name') || '').trim();
-      const status = String(row.Status || row.get('Status') || '').trim();
+      const status = String(row.Status || row.get('Status') || '').trim().toLowerCase();
 
       console.log(`ROW ${i}:`, { code, name, status });
 
       return { code, name, status };
-    }).filter(x => x.code || x.name);
+    }).filter(x => x.code && x.status === 'active');
 
     console.log('MINING SITES LOADED =', mining);
 
@@ -128,7 +112,6 @@ async function getMiningSites() {
 // ==================== WAREHOUSES ====================
 async function getWarehouses() {
   const now = Date.now();
-
   if (cache && now - cacheTime < CACHE_TTL && cache.warehouses) {
     console.log('WAREHOUSES FROM CACHE =', cache.warehouses);
     return cache.warehouses;
@@ -137,22 +120,22 @@ async function getWarehouses() {
   try {
     const doc = await getDoc();
     const sheet = doc.sheetsByTitle['03_Warehouses'];
-
     if (!sheet) {
       console.error('❌ Sheet 03_Warehouses not found');
       return [];
     }
 
-    const rows = await sheet.getRows();
+    const rows = await sheet.getRows({ headerRowIndex: 0 });
+
     console.log('03_Warehouses rows count =', rows.length);
 
     const warehouses = rows
-      .filter(row => (row.Status || row.get('Status')) === 'Active')
+      .filter(row => String(row.Status || row.get('Status') || '').trim().toLowerCase() === 'active')
       .map(row => ({
-        code: row.Warehouse_ID || row.WarehouseCode || row.get('Warehouse_ID'),
-        name: row.Warehouse_Name || row.WarehouseName || row.get('Warehouse_Name')
+        code: row.Warehouse_ID || row.get('Warehouse_ID') || row.WarehouseCode || row.get('WarehouseCode'),
+        name: row.Warehouse_Name || row.get('Warehouse_Name') || row.WarehouseName || row.get('WarehouseName')
       }))
-      .filter(x => x.code || x.name);
+      .filter(x => x.code);
 
     console.log('WAREHOUSES LOADED =', warehouses);
 
@@ -167,42 +150,7 @@ async function getWarehouses() {
   }
 }
 
-// ==================== SAVE ====================
-async function addGoldShipment(data) {
-  try {
-    const doc = await getDoc();
-    const sheet = doc.sheetsByTitle['04_Gold_Shipments'];
-
-    if (!sheet) {
-      throw new Error('Sheet "04_Gold_Shipments" not found');
-    }
-
-    await sheet.addRow({
-      Shipment_ID: data.shipmentId,
-      Created_At: data.createdAt,
-      User_ID: data.userId,
-      From_Site_ID: data.fromSiteId,
-      From_Site_Name: data.fromSiteName,
-      To_Warehouse_ID: data.toWarehouseId,
-      To_Warehouse_Name: data.toWarehouseName,
-      Gold_Type: data.goldType,
-      Weight_g: data.weight,
-      Purity_pct: data.purity,
-      Comment: data.comment || '',
-      Photo_File_ID: data.photoFileId || '',
-      Status: data.status || 'CREATED'
-    });
-
-    console.log('✅ Gold shipment added:', data.shipmentId);
-    return true;
-  } catch (error) {
-    console.error('❌ Error adding Gold Shipment FULL:', error);
-    return false;
-  }
-}
-
 module.exports = {
   getMiningSites,
-  getWarehouses,
-  addGoldShipment
+  getWarehouses
 };
